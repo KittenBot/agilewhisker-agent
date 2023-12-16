@@ -1,23 +1,52 @@
 import Aedes from 'aedes';
 import mqtt from 'mqtt';
 import net from 'net';
-import { jdunpack, JDServiceServer, CloudAdapterServer } from 'jacdac-ts';
+import { jdunpack, JDServiceServer, CloudAdapterServer, UPLOAD_JSON, UPLOAD_BIN, jdpack } from 'jacdac-ts';
 
 interface Options {
-    connectionName?: string;
+    host?: string;
+    topic?: string;
 }
 
 class MQTTServer extends CloudAdapterServer {
     private server: net.Server;
+    private topic: string;
     static broker: Aedes;
-    constructor(options: Options = {}) {
+    private client: mqtt.MqttClient;
+    constructor(options: Options) {
+        let connectionName = "mqtt://localhost:1883";
+        if (options.host) {
+            connectionName = `mqtt://${options.host}`;
+        }
         super({
-            connectionName: "mqtt://localhost:1883",
+            connectionName
         });
-        this.startBroker();
+
+        this.topic = options.topic || "jacdac";
+
+        if (connectionName === "mqtt://localhost:1883"){
+            this.startBroker()
+        }
+        this.client = mqtt.connect(connectionName);
+        this.client.on('connect', () => {
+            console.log("MQTT client connected");
+            this.connected = true;
+            this.client.subscribe(this.topic);
+        });
+        this.client.on('message', (topic, message) => {
+            // post EVT_JSON: 0x80 to jacdac
+            const json = message.toString();
+            this.sendEvent(0x80, jdpack("z s", [topic, json]));
+        });
+        this.on(UPLOAD_JSON, ({json}) => {
+            this.client.publish(this.topic, JSON.stringify(json))
+        })
+        this.on(UPLOAD_BIN, ({data}) => {
+            this.client.publish(this.topic, data)
+        })
     }
 
-    async startBroker(): Promise<void> {
+    startBroker(): Promise<void> {
         if (MQTTServer.broker) 
             return;
         const broker = new Aedes();
