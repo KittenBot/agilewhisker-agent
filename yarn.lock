@@ -139,7 +139,7 @@
 
 "@electron-forge/plugin-auto-unpack-natives@^7.2.0":
   version "7.2.0"
-  resolved "https://registry.yarnpkg.com/@electron-forge/plugin-auto-unpack-natives/-/plugin-auto-unpack-natives-7.2.0.tgz#177372de7913a710352341e5323f34e1f6eb7dba"
+  resolved "https://registry.npmmirror.com/@electron-forge/plugin-auto-unpack-natives/-/plugin-auto-unpack-natives-7.2.0.tgz#177372de7913a710352341e5323f34e1f6eb7dba"
   integrity sha512-5BI2t/Qt9wP188PHoS1qv/0CqIhByyacWRVeAgQ9kP6iMsPyyc4kn3kWGDQF2MyFqMmusRzcdM+SljDGR9aIeg==
   dependencies:
     "@electron-forge/plugin-base" "7.2.0"

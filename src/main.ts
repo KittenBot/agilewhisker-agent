@@ -1,6 +1,7 @@
 import { 
   app,
   ipcMain,
+  nativeImage,
   BrowserWindow,
   Tray,
   Menu,
@@ -34,6 +35,8 @@ import {
 import { SerialPort } from 'serialport';
 
 import extraServices from './services.json'; // copy from dev-keyboard/.devicscript/services.json
+
+import icon_img from './images/icon.png';
 
 const JACDAC_PORT = 8081;
 
@@ -204,8 +207,12 @@ if (require('electron-squirrel-startup')) {
 }
 
 const createWindow = () => {
+  const icon = nativeImage.createFromDataURL(icon_img)
+  const sys_icon = icon.resize({ width: 16, height: 16 })
+
   // Create the browser window.
   mainwin = new BrowserWindow({
+    icon,
     width: 800,
     height: 600,
     show:false,
@@ -231,7 +238,7 @@ const createWindow = () => {
   }
 
   // tray
-  const tray = new Tray(path.join(__dirname, './assets/icon-16x16.png'));
+  const tray = new Tray(sys_icon);
 
   // tray menu
   const contextMenu = Menu.buildFromTemplate([
@@ -241,6 +248,29 @@ const createWindow = () => {
       app.quit() 
     }}
   ]);
+
+
+  tray.on("click", () => {
+    if (mainwin.isVisible()) {
+      // show context menu
+      tray.popUpContextMenu(contextMenu);
+    } else {
+      mainwin.isVisible() ? mainwin.hide() : mainwin.show();
+    }
+  });
+    
+  mainwin.on("close", (event) => {
+    if (!appShouldQuit) {
+      event.preventDefault();
+      hideApp();
+    } else {
+      server.close();
+    }
+  });
+
+  hideApp();
+
+  startHttpServer();
 
 };
 
@@ -258,13 +288,13 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
+// app.on('activate', () => {
+//   // On OS X it's common to re-create a window in the app when the
+//   // dock icon is clicked and there are no other windows open.
+//   if (BrowserWindow.getAllWindows().length === 0) {
+//     createWindow();
+//   }
+// });
 
 
 app.on("window-all-closed", () => {
