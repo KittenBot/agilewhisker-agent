@@ -14,7 +14,7 @@
   "keywords": [],
   "author": {
     "name": "riven",
-    "email": "4771215@qq.com"
+    "email": "riven@kittenbot.cc"
   },
   "license": "MIT",
   "devDependencies": {
@@ -39,6 +39,7 @@
     "electron-squirrel-startup": "^1.0.0",
     "faye-websocket": "^0.11.4",
     "jacdac-ts": "^1.33.6",
+    "mqtt": "^5.3.3",
     "serialport": "^12.0.0",
     "systeminformation": "^5.21.20"
   }
