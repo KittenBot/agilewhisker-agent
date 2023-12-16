@@ -4,8 +4,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    "start-service": (name: string) => ipcRenderer.invoke("start-service", name),
-    "stop-service": (name: string) => ipcRenderer.invoke("stop-service", name),
-    "get-services": () => ipcRenderer.invoke("get-services"),
+    "start_service": (name: string) => ipcRenderer.invoke("start-service", name),
+    "stop_service": (name: string) => ipcRenderer.invoke("stop-service", name),
+    "get_services": () => ipcRenderer.invoke("get-services"),
 })
 
