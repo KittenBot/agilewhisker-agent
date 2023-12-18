@@ -31,6 +31,7 @@ import {
   addServer,
   addServiceProvider,
   JDServerServiceProvider,
+  ControlReg,
 } from 'jacdac-ts';
 
 import { SerialPort } from 'serialport';
@@ -97,8 +98,8 @@ async function startJacdacBus() {
   })
 
   bus.on(CONNECTION_STATE, async (transport) => {
-    // console.log("connection state", transport.type, transport.connectionState)
-    console.log("connection state", transport)
+    console.log("connection state", transport.type, transport.connectionState)
+    // console.log("connection state", transport)
   })
 
   bus.on(FRAME_PROCESS, async (frame) => {
@@ -133,7 +134,6 @@ async function startJacdacBus() {
 }
 
 async function refreshDevice() {
-  // TODO: devicescript seems to be not dynamic binding to updated services, so restart hostdevice with all services
   jdbus.removeServiceProvider(hostdevice);
   hostdevice = null;
 
@@ -142,10 +142,21 @@ async function refreshDevice() {
     _services.push(hostServices[name]);
   }
 
-  hostdevice = new JDServerServiceProvider('agilewhisk', _services);
+  if (_services.length === 0) {
+    return;
+  }
+  // this will start a new device with new device id which will cause devicescript to reboud services
+  hostdevice = new JDServerServiceProvider('agilewhisk', _services, {
+    deviceDescription: "AgileWhisk",
+  });
+  hostdevice.controlService.register(ControlReg.ProductIdentifier).setValues([0xAA55BB66]);
+
   jdbus.addServiceProvider(hostdevice);
-
-
+  
+  new Notification({
+    title: "Jacdac",
+    body: `Device ${hostdevice.shortId} started`,
+  }).show();
 }
 
 function startHttpServer(){
