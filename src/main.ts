@@ -220,6 +220,8 @@ const createWindow = () => {
     useContentSize: true,
     alwaysOnTop: true,
     webPreferences: {
+      nodeIntegration: true,
+      // contextIsolation: false,
       backgroundThrottling: false,
       preload: path.join(__dirname, 'preload.js'),
     },

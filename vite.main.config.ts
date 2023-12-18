@@ -8,6 +8,7 @@ export default defineConfig({
     mainFields: ['module', 'jsnext:main', 'jsnext'],
   },
   build: {
+    minify: false,
     rollupOptions: {
       external: [
         'serialport',
