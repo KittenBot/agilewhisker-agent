@@ -1,4 +1,5 @@
 import net from "net";
+import {EventEmitter} from "events";
 import mqttPacket, {Parser} from "mqtt-packet";
 
 const defaultOptions = {
@@ -11,18 +12,25 @@ const defaultOptions = {
 };
 
 // TODO: mqttjs don't work with aedes and vite
-class MQTTClient {
+class MQTTClient extends EventEmitter {
     private client: net.Socket;
     private options: any;
     private _parser: Parser;
     private connected: boolean;
-    private callback: any;
     private _pingInterval: any;
-    constructor(host: string, callback: any, clientOptions: any = {}) {
-        this.callback = callback;
+    private messageId: number;
+    constructor(host: string, clientOptions: any = {}) {
+        super();
         this.options = {...defaultOptions, ...clientOptions};
         this.client = new net.Socket();
         this._parser = mqttPacket.parser();
+        let port = '1883';
+        if (host.startsWith("mqtt://")) {
+            host = host.substr(7);
+            if (host.includes(":")) {
+                [host, port] = host.split(":");
+            }
+        }
 
         this._parser.on('packet', (packet) => {
             console.log("Received packet", packet);
@@ -41,9 +49,7 @@ class MQTTClient {
                     break;
         
                 case 'publish':
-                    if (this.callback) {
-                        this.callback(packet.topic, packet.payload.toString());
-                    }
+                    this.emit('message', packet.topic, packet.payload);
                     break;
         
                 case 'pingresp':
@@ -71,6 +77,7 @@ class MQTTClient {
                 });
                 this.client.write(packet);
             }, 10000);
+            this.emit('connect');
         });
 
         this.client.on('data', (data) => {
@@ -86,7 +93,14 @@ class MQTTClient {
             this.connected = false;
             clearInterval(this._pingInterval);
         });
-        this.client.connect(1883, host);
+        this.client.connect(parseInt(port), host);
+    }
+
+    _generateMessageId() {
+        if (!this.messageId) {
+            this.messageId = 0;
+        }
+        return ++this.messageId;
     }
 
     publish(topic: string, message: string) {
@@ -98,6 +112,19 @@ class MQTTClient {
             payload: message,
             qos: 0,
             retain: false
+        });
+        this.client.write(packet);
+    }
+
+    subscribe(topic: string) {
+        if (!this.connected) return;
+        const packet = mqttPacket.generate({
+            cmd: 'subscribe',
+            messageId: this._generateMessageId(),
+            subscriptions: [{
+                topic,
+                qos: 0
+            }]
         });
         this.client.write(packet);
     }
