@@ -12,7 +12,8 @@ export default defineConfig({
     rollupOptions: {
       external: [
         'serialport',
-        'sqlite3'
+        'sqlite3',
+        '@jitsi/robotjs'
       ]
     }
   }

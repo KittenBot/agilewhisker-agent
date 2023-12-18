@@ -6,6 +6,7 @@ import {
   Tray,
   Menu,
   MenuItem,
+  Notification,
  } from 'electron';
 import path from 'path';
 import http from 'http';
@@ -48,6 +49,11 @@ let jdbus: JDBus = null;
 let hostdevice: JDServerServiceProvider = null;
 let hostServices: Record<string, any> = {};
 let wsClients: Record<string, WebSocket> = {};
+let hasHttpServer = false;
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function hideApp() {
   mainwin.hide();
@@ -58,12 +64,12 @@ function hideApp() {
 
 const jdproxy = '<html lang="en"><title>Jacdac DevTools</title><meta name="viewport"content="width=device-width,initial-scale=1"><link rel="icon"href="https://microsoft.github.io/jacdac-docs/favicon.svg"type="image/x-icon"><style>iframe{position:absolute;left:0;top:0;height:100%;width:100%;border:none}</style><iframe id="frame"alt="Jacdac Dashboard"allow="usb;serial;bluetooth;vr;clipboard-write;"allowfullscreen sandbox="allow-scripts allow-downloads allow-same-origin"></iframe><script>!function(){function e(){var n;o||(n=!1,(o=new WebSocket(a)).binaryType="arraybuffer",console.debug("devtools: connecting ".concat(a,"...")),o.addEventListener("open",function(){console.debug("devtools: connected ".concat(o.url)),n=!0,d.contentWindow.postMessage({type:"devtoolsconnected",sender:s},"*")}),o.addEventListener("message",function(e){"string"==typeof e.data?d.contentWindow.postMessage(e.data,"*"):(e=new Uint8Array(e.data),d.contentWindow.postMessage({type:"messagepacket",channel:"jacdac",data:e,sender:s},"*"))}),o.addEventListener("close",function(){console.debug("devtools: connection closed"),o=void 0}),o.addEventListener("error",function(e){n&&console.debug("devtools: error",e),null!=o&&o.close()}))}var o,n=window.location,t="https:"===n.protocol,n=n.hostname,c=t?443:8081,a="".concat(t?"wss:":"ws:","//").concat(n,":").concat(c,"/"),d=document.getElementById("frame"),t=window.location.search||"",s=(t+=(0<t.length?"&":"?")+"devtools="+encodeURIComponent(a),Math.random()+""),n="https://microsoft.github.io/jacdac-docs/dashboard/"+t+"#"+s;window.addEventListener("message",function(e){e=e.data;e&&("messagepacket"===e.type&&"jacdac"===e.channel||"devicescript"===e.channel)&&(null==o?void 0:o.readyState)===WebSocket.OPEN&&o.send(e.data)});setInterval(e,5e3),e(),d.src=n}()</script>';
 
-async function startJacdacBus(hasServer = false) {
+async function startJacdacBus() {
   const transports = [
   ]
   // if we start as server, make serial connection available
   // if not, the vscode devicescript should handle it, make a tcp connection to it
-  if (hasServer) {
+  if (hasHttpServer) {
     // add serial transport
     transports.push(createNodeWebSerialTransport(SerialPort));
   } else {
@@ -91,7 +97,8 @@ async function startJacdacBus(hasServer = false) {
   })
 
   bus.on(CONNECTION_STATE, async (transport) => {
-    console.log("connection state", transport.type, transport.connectionState)
+    // console.log("connection state", transport.type, transport.connectionState)
+    console.log("connection state", transport)
   })
 
   bus.on(FRAME_PROCESS, async (frame) => {
@@ -118,23 +125,27 @@ async function startJacdacBus(hasServer = false) {
     }
   })
 
-  bus.autoConnect = true;
+  bus.autoConnect = false;
   bus.start()
   await bus.connect()
   
   jdbus = bus;
+}
 
-  // TODO: bind all services to one host device
-  // local services
-  // addServiceProvider(bus, {
-  //   name: "hostapp",
-  //   serviceClasses: [],
-  //   services: () => {
-  //     return []
-  //   }
-  // });
-  hostdevice = new JDServerServiceProvider('agilewhisk', []);
-  bus.addServiceProvider(hostdevice);
+async function refreshDevice() {
+  // TODO: devicescript seems to be not dynamic binding to updated services, so restart hostdevice with all services
+  jdbus.removeServiceProvider(hostdevice);
+  hostdevice = null;
+
+  const _services = []
+  for (const name in hostServices) {
+    _services.push(hostServices[name]);
+  }
+
+  hostdevice = new JDServerServiceProvider('agilewhisk', _services);
+  jdbus.addServiceProvider(hostdevice);
+
+
 }
 
 function startHttpServer(){
@@ -191,7 +202,8 @@ function startHttpServer(){
     http_server.listen(JACDAC_PORT, '127.0.0.1')
     http_server.once('listening', () => {
       console.log("Server listening on port", JACDAC_PORT);
-      startJacdacBus(true);
+      hasHttpServer = true;
+      startJacdacBus();
     })
 
     server = http_server;
@@ -351,12 +363,8 @@ ipcMain.handle('start-service', async (event, name) => {
       console.warn("Unknown service", name);
       break;
   }
-  // hostServices to list
-  const _hostServices = []
-  for (const name in hostServices) {
-    _hostServices.push(hostServices[name]);
-  }
-  hostdevice.updateServices(_hostServices);
+  
+  refreshDevice();
   return getServices();
 })
 

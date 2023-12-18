@@ -1,5 +1,5 @@
 import { jdunpack, JDServiceServer } from 'jacdac-ts';
-import * as nutjs from '@nut-tree/nut-js';
+import robot from '@jitsi/robotjs';
 import { exec } from 'child_process';
 
 const SRV_PC_EVENT = 0x113d0987;
@@ -35,6 +35,7 @@ class PCEvent extends JDServiceServer {
     handleSendText(pkt: any): void {
         const [text] = jdunpack(pkt.data, "s");
         console.log("send text", text);
+        robot.typeString(text)
     }
 
     handleRunScript(pkt: any): void {
