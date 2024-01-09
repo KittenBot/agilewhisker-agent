@@ -379,8 +379,26 @@ ipcMain.handle('start-service', async (event, name) => {
   return getServices();
 })
 
-ipcMain.handle('stop-service', async (event, args) => {
-
+ipcMain.handle('stop-service', async (event, name) => {
+  console.log("stop service", name);
+  switch (name) {
+    case 'Ambient':
+      break;
+    case 'Cloud':
+      delete hostServices[name]
+      break;
+    case 'Event':
+      delete hostServices[name]
+      break;
+    case 'Monitor':
+      delete hostServices[name]
+      break;
+    default:
+      console.warn("Unknown service", name);
+      break;
+  }
+  
+  refreshDevice();
   return getServices();
 })
 

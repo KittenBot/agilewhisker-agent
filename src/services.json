@@ -453,6 +453,27 @@
           }
         ],
         "packFormat": "s"
+      },
+      {
+        "kind": "command",
+        "name": "move_mouse",
+        "identifier": 132,
+        "description": "Move mouse with accelerometer.",
+        "fields": [
+          {
+            "name": "position",
+            "type": "string",
+            "storage": 0
+          }
+        ],
+        "packFormat": "s"
+      },
+      {
+        "kind": "command",
+        "name": "click_mouse",
+        "identifier": 133,
+        "description": "Make the mouse click.",
+        "packFormat": "s"
       }
     ],
     "tags": [],
