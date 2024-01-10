@@ -473,6 +473,13 @@
         "name": "click_mouse",
         "identifier": 133,
         "description": "Make the mouse click.",
+        "fields": [
+          {
+            "name": "click",
+            "type": "string",
+            "storage": 0
+          }
+        ],
         "packFormat": "s"
       }
     ],

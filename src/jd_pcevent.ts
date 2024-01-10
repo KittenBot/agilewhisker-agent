@@ -2,6 +2,8 @@ import { jdunpack, JDServiceServer } from 'jacdac-ts';
 import robot from '@jitsi/robotjs';
 import { exec } from 'child_process';
 
+robot.setMouseDelay(0.001)
+
 const SRV_PC_EVENT = 0x113d0987;
 const CMD_OPEN_URL = 0x80;
 const CMD_OPEN_APP = 0x81;
@@ -48,23 +50,24 @@ class PCEvent extends JDServiceServer {
     }
 
     handleMoveMouse(pkt: any): void {
-        const [position] = jdunpack(pkt.data, "s");
-        const mousePos = robot.getMousePos()
-        switch(position){
-            case 'left':
-                robot.moveMouseSmooth(mousePos.x-10,mousePos.y)
-                break;
-            case 'right':
-                robot.moveMouseSmooth(mousePos.x+10,mousePos.y)
-                break;
-            default:
-                break;
-        }
+        const [position] = jdunpack(pkt.data, "s")
+        const posArr = position.split(',')
+        const moveX = parseFloat(posArr[0])
+        const moveY = parseFloat(posArr[1])
+        const screen = robot.getScreenSize()
+        
+        const screenX = (moveX+65535)*(screen.width/(65535*2))
+        const screenY = (moveY+65535)*(screen.height/(65535*2))
+        robot.moveMouseSmooth(screenX,screenY,0.01)
     }
 
-    handleClickMouse(): void {
-        robot.mouseToggle("down")
-        robot.mouseToggle("up")
+    handleClickMouse(pkt: any): void {
+        const [position] = jdunpack(pkt.data, "s");
+        if(position==='down'){
+            robot.mouseToggle("down")
+        }else{
+            robot.mouseToggle("up")
+        }
     }
 }
 
