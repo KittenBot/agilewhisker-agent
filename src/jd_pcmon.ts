@@ -1,4 +1,4 @@
-import { jdunpack, JDServiceServer, REGISTER_PRE_GET } from 'jacdac-ts';
+import { jdunpack, JDServiceServer, REGISTER_PRE_GET, CHANGE } from 'jacdac-ts';
 import * as si from 'systeminformation';
 
 const SRV_PC_MONITOR = 0x18627b15;
@@ -10,12 +10,15 @@ class PCMonitor extends JDServiceServer {
     REG_MEMORY_USAGE = 0x192;
     REG_GPU_INFO = 0x193;
     REG_NETWORK_INFO = 0x195;
+    STATUS_INFO = 0x88;
+    REG_GET_STATUS = 0x196;
 
     cpu_usage: any;
     cpu_temp: any;
     memory_usage: any;
     gpu_info: any;
     network_info: any;
+    get_status: any
 
     constructor() {
         super(SRV_PC_MONITOR, {
@@ -29,6 +32,8 @@ class PCMonitor extends JDServiceServer {
                 this.cpu_usage.setValues([load]);
             }).catch(error => console.error(error));
         });
+
+        this.get_status = this.addRegister(this.REG_GET_STATUS, [0]); // u8 percent
 
         this.cpu_temp = this.addRegister(this.REG_CPU_TEMP, [-1]); // u8 celsius
         this.cpu_temp.on(REGISTER_PRE_GET, () => {
@@ -50,12 +55,43 @@ class PCMonitor extends JDServiceServer {
 
         this.network_info = this.addRegister(this.REG_NETWORK_INFO, [0, 0]); // u16, u16, tx, rx speed in kbps
         this.network_info.on(REGISTER_PRE_GET, () => {
-            si.networkStats('default').then(data => {
+            si.networkStats('default').then((data:any) => {
                 const tx = Math.round(data.tx_sec / 1024);
                 const rx = Math.round(data.rx_sec / 1024);
                 this.network_info.setValues([tx, rx]);
             }).catch(error => console.error(error));
         });
+        this.addCommand(this.STATUS_INFO,this.handleRequestStatus.bind(this))
+    }
+    handleRequestStatus (pkt:any):void {
+        const [data] = jdunpack(pkt.data, "s");
+        const {owner, repo, commitId,token} = JSON.parse(data)
+        const fetchNode = require('node-fetch')
+        fetchNode(`https://api.github.com/repos/${owner}/${repo}/commits/${commitId}/status`,
+        {
+            method: 'GET',
+            headers:{
+                Authorization: token ? `Bearer ${token}` : '',
+                'Cache-Control': 'no-store'
+            }
+        })
+        .then(async (res:any)=>{
+            if (res.status === 200) {
+                const json = await res.json()
+                const state = json.state
+                if(state === "failure"){
+                    this.get_status.setValues([2])
+                }else if(state ===  "pending"){
+                    this.get_status.setValues([1])
+                }else if(state === "success"){
+                    this.get_status.setValues([0])
+                }
+            }else{
+                this.get_status.setValues([3])
+            }
+        }).catch((error:any)=>{
+            this.get_status.setValues([3])
+        })
     }
 
     handleRefresh(): void {

@@ -685,6 +685,21 @@
       },
       {
         "kind": "ro",
+        "name": "get_status",
+        "identifier": 406,
+        "description": "Get github build status",
+        "fields": [
+          {
+            "name": "_",
+            "type": "u8",
+            "storage": 1,
+            "isSimpleType": true
+          }
+        ],
+        "packFormat": "u8"
+      },
+      {
+        "kind": "ro",
         "name": "cpu_temp",
         "identifier": 401,
         "description": "CPU temperature in Celsius.",
@@ -754,6 +769,20 @@
           }
         ],
         "packFormat": "u16 u16"
+      },
+      {
+        "kind": "command",
+        "name": "request_status",
+        "identifier": 128,
+        "description": "Open a URL in the default browser.",
+        "fields": [
+          {
+            "name": "data",
+            "type": "string",
+            "storage": 4
+          }
+        ],
+        "packFormat": "s"
       }
     ],
     "tags": [],
