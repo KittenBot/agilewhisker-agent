@@ -1,4 +1,4 @@
-import { jdunpack, JDServiceServer, REGISTER_PRE_GET, CHANGE } from 'jacdac-ts';
+import { jdunpack, JDServiceServer, REGISTER_PRE_GET, CHANGE, REGISTER_NODE_NAME, EVENT} from 'jacdac-ts';
 import * as si from 'systeminformation';
 
 const SRV_PC_MONITOR = 0x18627b15;
@@ -19,11 +19,13 @@ class PCMonitor extends JDServiceServer {
     gpu_info: any;
     network_info: any;
     get_status: any
+    private data: number
 
     constructor() {
         super(SRV_PC_MONITOR, {
             // streamingInterval: 10000,
         });
+        this.data = 0
 
         this.cpu_usage = this.addRegister(this.REG_CPU_USAGE, [0]); // u8 percent
         this.cpu_usage.on(REGISTER_PRE_GET, () => {
@@ -33,7 +35,10 @@ class PCMonitor extends JDServiceServer {
             }).catch(error => console.error(error));
         });
 
-        this.get_status = this.addRegister(this.REG_GET_STATUS, [0]); // u8 percent
+        this.get_status = this.addRegister(this.REG_GET_STATUS,[0])
+        this.get_status.on(REGISTER_PRE_GET, () => {
+            this.get_status?.setValues([this.data])
+        });
 
         this.cpu_temp = this.addRegister(this.REG_CPU_TEMP, [-1]); // u8 celsius
         this.cpu_temp.on(REGISTER_PRE_GET, () => {
@@ -63,7 +68,10 @@ class PCMonitor extends JDServiceServer {
         });
         this.addCommand(this.STATUS_INFO,this.handleRequestStatus.bind(this))
     }
-    handleRequestStatus (pkt:any):void {
+    delay(ms: number): any {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    async handleRequestStatus (pkt:any):Promise<any> {
         const [data] = jdunpack(pkt.data, "s");
         const {owner, repo, commitId,token} = JSON.parse(data)
         const fetchNode = require('node-fetch')
@@ -80,17 +88,17 @@ class PCMonitor extends JDServiceServer {
                 const json = await res.json()
                 const state = json.state
                 if(state === "failure"){
-                    this.get_status.setValues([2])
+                    this.data = 2
                 }else if(state ===  "pending"){
-                    this.get_status.setValues([1])
+                    this.data = 1
                 }else if(state === "success"){
-                    this.get_status.setValues([0])
+                    this.data = 0
                 }
             }else{
-                this.get_status.setValues([3])
+                this.data = 3
             }
         }).catch((error:any)=>{
-            this.get_status.setValues([3])
+            this.data = 3
         })
     }
 
