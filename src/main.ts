@@ -39,6 +39,7 @@ import { SerialPort } from 'serialport';
 import extraServices from './services.json'; // copy from dev-keyboard/.devicscript/services.json
 
 import icon_img from './images/icon.png';
+import { EmailClient } from './jd_email';
 
 const JACDAC_PORT = 8081;
 
@@ -345,6 +346,11 @@ function getServices(){
         name: "Monitor",
         status: Object.keys(hostServices).includes("Monitor"),
         icon: 'img/monitor.png'
+    },
+    {
+      name: "Email",
+      status: Object.keys(hostServices).includes("Email"),
+      icon: 'img/monitor.png'
     }
   ]
 }
@@ -370,6 +376,10 @@ ipcMain.handle('start-service', async (event, name) => {
       const monitor = new PCMonitor();
       hostServices[name] = monitor;
       break;
+    case 'Email':
+      const email = new EmailClient();
+      hostServices[name] = email;
+      break;
     default:
       console.warn("Unknown service", name);
       break;
@@ -391,6 +401,12 @@ ipcMain.handle('stop-service', async (event, name) => {
       delete hostServices[name]
       break;
     case 'Monitor':
+      delete hostServices[name]
+      break;
+    case 'Email':
+      if(hostServices[name].imap){
+        hostServices[name].handleCloseListen()
+      }
       delete hostServices[name]
       break;
     default:
