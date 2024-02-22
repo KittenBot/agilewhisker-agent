@@ -8,9 +8,6 @@ class PCMonitor extends JDServiceServer {
     REG_CPU_USAGE = 0x190;
     REG_CPU_TEMP = 0x191;
     REG_MEMORY_USAGE = 0x192;
-    REG_GPU_INFO = 0x193;
-    REG_NETWORK_INFO = 0x195;
-    STATUS_INFO = 0x88;
     REG_GET_STATUS = 0x196;
 
     cpu_usage: any;
@@ -18,14 +15,11 @@ class PCMonitor extends JDServiceServer {
     memory_usage: any;
     gpu_info: any;
     network_info: any;
-    get_status: any
-    private data: number
 
     constructor() {
         super(SRV_PC_MONITOR, {
             // streamingInterval: 10000,
         });
-        this.data = 0
 
         this.cpu_usage = this.addRegister(this.REG_CPU_USAGE, [0]); // u8 percent
         this.cpu_usage.on(REGISTER_PRE_GET, () => {
@@ -33,11 +27,6 @@ class PCMonitor extends JDServiceServer {
                 const load = Math.round(data.currentLoad);
                 this.cpu_usage.setValues([load]);
             }).catch(error => console.error(error));
-        });
-
-        this.get_status = this.addRegister(this.REG_GET_STATUS,[0])
-        this.get_status.on(REGISTER_PRE_GET, () => {
-            this.get_status?.setValues([this.data])
         });
 
         this.cpu_temp = this.addRegister(this.REG_CPU_TEMP, [-1]); // u8 celsius
@@ -66,40 +55,9 @@ class PCMonitor extends JDServiceServer {
                 this.network_info.setValues([tx, rx]);
             }).catch(error => console.error(error));
         });
-        this.addCommand(this.STATUS_INFO,this.handleRequestStatus.bind(this))
     }
     delay(ms: number): any {
         return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    async handleRequestStatus (pkt:any):Promise<any> {
-        const [data] = jdunpack(pkt.data, "s");
-        const {owner, repo, commitId,token} = JSON.parse(data)
-        const fetchNode = require('node-fetch')
-        fetchNode(`https://api.github.com/repos/${owner}/${repo}/commits/${commitId}/status`,
-        {
-            method: 'GET',
-            headers:{
-                Authorization: token ? `Bearer ${token}` : '',
-                'Cache-Control': 'no-store'
-            }
-        })
-        .then(async (res:any)=>{
-            if (res.status === 200) {
-                const json = await res.json()
-                const state = json.state
-                if(state === "failure"){
-                    this.data = 2
-                }else if(state ===  "pending"){
-                    this.data = 1
-                }else if(state === "success"){
-                    this.data = 0
-                }
-            }else{
-                this.data = 3
-            }
-        }).catch((error:any)=>{
-            this.data = 3
-        })
     }
 
     handleRefresh(): void {

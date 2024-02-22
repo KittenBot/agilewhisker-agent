@@ -6,13 +6,11 @@ const SRV_PC_MONITOR = 0x18627b16;
 class EmailClient extends JDServiceServer {
     OPENLISTEN = 0x89;
     CLOSE_LISTEN = 0x90;
-    LISTEN_EMAIL = 0x197
 
     imap:any;
     intervalId:any;
     private emailNumber: number
     emailStatus: number
-    listen: any
 
     constructor() {
         super(SRV_PC_MONITOR);
@@ -20,11 +18,6 @@ class EmailClient extends JDServiceServer {
         this.emailStatus = 0
         this.imap =  null
         this.intervalId = null
-
-        this.listen = this.addRegister(this.LISTEN_EMAIL, [0])
-        this.listen.on(REGISTER_PRE_GET, () => {
-            this.listen?.setValues([this.emailStatus])
-        });
 
         this.addCommand(this.OPENLISTEN,this.handleOpenListen.bind(this))
         this.addCommand(this.CLOSE_LISTEN,this.handleCloseListen.bind(this));
@@ -52,9 +45,9 @@ class EmailClient extends JDServiceServer {
                 this.imap.openBox('INBOX', true, async (err:any, box:any)=> {
                     if (err) throw err;
                     if(this.emailNumber < box.messages.total * 1 && box.messages.total !==0 && this.emailNumber !== 0){
-                        this.emailStatus = 1;
-                    }else{
-                        this.emailStatus = 0;
+                        const encoder = new TextEncoder();
+                        const uint8Array = encoder.encode('New email received');
+                        this.sendEvent(0x81,uint8Array)
                     }
                     this.emailNumber = box.messages.total * 1;
                 })

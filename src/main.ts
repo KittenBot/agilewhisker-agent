@@ -40,6 +40,7 @@ import extraServices from './services.json'; // copy from dev-keyboard/.devicscr
 
 import icon_img from './images/icon.png';
 import { EmailClient } from './jd_email';
+import { GithubClient } from './jd_github';
 
 const JACDAC_PORT = 8081;
 
@@ -351,6 +352,11 @@ function getServices(){
       name: "Email",
       status: Object.keys(hostServices).includes("Email"),
       icon: 'img/monitor.png'
+    },
+    {
+      name: 'Github',
+      status: Object.keys(hostServices).includes("Github"),
+      icon: 'img/monitor.png'
     }
   ]
 }
@@ -380,6 +386,10 @@ ipcMain.handle('start-service', async (event, name) => {
       const email = new EmailClient();
       hostServices[name] = email;
       break;
+    case "Github":
+      const github = new GithubClient();
+      hostServices[name] = github;
+      break;
     default:
       console.warn("Unknown service", name);
       break;
@@ -407,6 +417,9 @@ ipcMain.handle('stop-service', async (event, name) => {
       if(hostServices[name].imap){
         hostServices[name].handleCloseListen()
       }
+      delete hostServices[name]
+      break;
+    case "Github":
       delete hostServices[name]
       break;
     default:
