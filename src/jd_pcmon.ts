@@ -9,6 +9,8 @@ class PCMonitor extends JDServiceServer {
     REG_CPU_TEMP = 0x191;
     REG_MEMORY_USAGE = 0x192;
     REG_GET_STATUS = 0x196;
+    REG_GPU_INFO = 0x193;
+    REG_NETWORK_INFO = 0x195;
 
     cpu_usage: any;
     cpu_temp: any;
