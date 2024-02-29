@@ -331,7 +331,8 @@ function getServices(){
     {
       name: "Ambient",
       status: Object.keys(hostServices).includes("Ambient"),
-      icon: 'img/ambient.png'
+      icon: 'img/ambient.png',
+      disabled: true
     },
     {
         name: "Cloud",
