@@ -35,6 +35,18 @@ const config: ForgeConfig = {
       ],
     })
   ],
+  publishers: [
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: {
+          owner: 'KittenBot',
+          name: 'agilewhisker-desktop.git'
+        },
+        prerelease: true
+      }
+    }
+  ]
 };
 
 export default config;
