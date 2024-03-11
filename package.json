@@ -45,8 +45,6 @@
     "imap": "^0.8.19",
     "jacdac-ts": "^1.33.6",
     "serialport": "^12.0.0",
-    "sharp": "^0.33.2",
-    "systeminformation": "^5.21.20",
-    "tesseract.js": "^5.0.5"
+    "systeminformation": "^5.21.20"
   }
 }

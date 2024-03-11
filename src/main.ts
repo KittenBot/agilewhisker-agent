@@ -15,8 +15,6 @@ import fs from 'fs-extra'
 import http from 'http';
 import net from 'net';
 import WebSocket from 'faye-websocket';
-import sharp from 'sharp';
-import Tesseract from 'tesseract.js';
 
 import { MQTTServer } from './jd_mqtt';
 import { PCEvent } from './jd_pcevent';
@@ -467,7 +465,6 @@ ipcMain.handle('stop-service', async (event, name) => {
 
 ipcMain.handle('selection-done', async (event, selection) => {
   console.log("selection done", selection);
-  ocrwin.close();
   const { x, y, width, height } = selection;
   // capture screen
   try {
@@ -477,15 +474,15 @@ ipcMain.handle('selection-done', async (event, selection) => {
     if (!entireScreen) {
       throw new Error('Entire screen not found');
     }
-    const image = await sharp(entireScreen.thumbnail.toPNG())
-      .extract({ left: x, top: y, width, height })
-      .toBuffer();
-
-    fs.writeFileSync(path.join(__dirname, 'screenshot.png'), image);
-
+    return entireScreen.thumbnail.crop({ x, y, width, height }).toDataURL();
   } catch (e) {
     console.error(e);
   }
+})
+
+ipcMain.handle('ocr-result', async (event, result) => {
+  ocrwin.close();
+  console.log("OCR result", result);
 })
 
 

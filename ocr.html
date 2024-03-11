@@ -27,10 +27,10 @@
   <div class="mask" id="mask-bottom"></div>
   <div class="mask" id="mask-left"></div>
   <div class="mask" id="mask-right"></div>
-
+  <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
   <script>
     {{/*  const { ipcRenderer } = require('electron');  */}}
-    const { selection_done } = window.electronAPI;
+    const { selection_done, ocr_result } = window.electronAPI;
 
     const selectionDiv = document.getElementById('selection');
     let startX, startY, endX, endY;
@@ -73,15 +73,20 @@
         updateMask();
       };
 
-      window.onmouseup = () => {
+      window.onmouseup = async () => {
         window.onmousemove = null;
         window.onmouseup = null;
-        selection_done({
+        const ret = await selection_done({
           x: Math.min(startX, endX),
           y: Math.min(startY, endY),
           width: Math.abs(endX - startX),
           height: Math.abs(endY - startY)
         });
+        console.log(ret);
+        const worker = await Tesseract.createWorker('eng');
+        const txt = await worker.recognize(ret);
+        ocr_result(txt.data.text);
+
       };
     };
   </script>
