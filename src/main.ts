@@ -7,8 +7,11 @@ import {
   Menu,
   MenuItem,
   Notification,
+  desktopCapturer,
+  screen,
  } from 'electron';
 import path from 'path';
+import fs from 'fs-extra'
 import http from 'http';
 import net from 'net';
 import WebSocket from 'faye-websocket';
@@ -47,6 +50,7 @@ const JACDAC_PORT = 8081;
 let appShouldQuit = false;
 let tray = null;
 let mainwin: BrowserWindow = null;
+let ocrwin: BrowserWindow = null;
 let server: http.Server = null;
 let jdbus: JDBus = null;
 let hostdevice: JDServerServiceProvider = null;
@@ -268,6 +272,8 @@ const createWindow = () => {
   // tray menu
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Open', click: () => mainwin.show() },
+    { label: 'OCR', click: () => createOcrWindow() },
+    { type: 'separator' },
     { label: 'Exit', click: () => {
       appShouldQuit = true;
       app.quit() 
@@ -298,6 +304,27 @@ const createWindow = () => {
   startHttpServer();
 
 };
+
+const createOcrWindow = () => {
+  ocrwin = new BrowserWindow({
+    width: 800,
+    height: 600,
+    frame: false,
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: true,
+      // contextIsolation: false,
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+
+  ocrwin.loadFile('ocr.html');
+  ocrwin.setAlwaysOnTop(true, 'screen-saver');
+  ocrwin.maximize();
+
+  // ocrwin.webContents.openDevTools();
+
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -431,8 +458,31 @@ ipcMain.handle('stop-service', async (event, name) => {
       console.warn("Unknown service", name);
       break;
   }
-  
+
   refreshDevice();
   return getServices();
 })
+
+ipcMain.handle('selection-done', async (event, selection) => {
+  console.log("selection done", selection);
+  const { x, y, width, height } = selection;
+  // capture screen
+  try {
+    const display = screen.getPrimaryDisplay();
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: display.size.width, height: display.size.height }});
+    const entireScreen = sources.find(source => source.name === 'Entire screen' || source.name === 'Screen 1');
+    if (!entireScreen) {
+      throw new Error('Entire screen not found');
+    }
+    return entireScreen.thumbnail.crop({ x, y, width, height }).toDataURL();
+  } catch (e) {
+    console.error(e);
+  }
+})
+
+ipcMain.handle('ocr-result', async (event, result) => {
+  ocrwin.close();
+  console.log("OCR result", result);
+})
+
 

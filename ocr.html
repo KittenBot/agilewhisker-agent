@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    .mask {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.5);
+      pointer-events: none;
+    }
+    #selection {
+      position: absolute;
+      border: 2px solid red;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <div id="selection"></div>
+  <div class="mask" id="mask-top"></div>
+  <div class="mask" id="mask-bottom"></div>
+  <div class="mask" id="mask-left"></div>
+  <div class="mask" id="mask-right"></div>
+  <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+  <script>
+    {{/*  const { ipcRenderer } = require('electron');  */}}
+    const { selection_done, ocr_result } = window.electronAPI;
+
+    const selectionDiv = document.getElementById('selection');
+    let startX, startY, endX, endY;
+
+    function updateMask() {
+      const width = Math.abs(endX - startX);
+      const height = Math.abs(endY - startY);
+      const top = Math.min(startY, endY);
+      const bottom = Math.max(startY, endY);
+      const left = Math.min(startX, endX);
+      const right = Math.max(startX, endX);
+
+      document.getElementById('mask-top').style.cssText = `top: 0px; left: 0px; width: 100%; height: ${top}px;`;
+      document.getElementById('mask-bottom').style.cssText = `top: ${bottom}px; left: 0px; width: 100%; height: calc(100% - ${bottom}px);`;
+      document.getElementById('mask-left').style.cssText = `top: ${top}px; left: 0px; width: ${left}px; height: ${height}px;`;
+      document.getElementById('mask-right').style.cssText = `top: ${top}px; left: ${right}px; width: calc(100% - ${right}px); height: ${height}px;`;
+    }
+
+    window.onmousedown = (e) => {
+      startX = e.clientX;
+      startY = e.clientY;
+
+      selectionDiv.style.left = `${startX}px`;
+      selectionDiv.style.top = `${startY}px`;
+      selectionDiv.style.width = '0px';
+      selectionDiv.style.height = '0px';
+
+      window.onmousemove = (e) => {
+        endX = e.clientX;
+        endY = e.clientY;
+
+        const width = Math.abs(endX - startX);
+        const height = Math.abs(endY - startY);
+
+        selectionDiv.style.width = `${width}px`;
+        selectionDiv.style.height = `${height}px`;
+        selectionDiv.style.left = `${Math.min(startX, endX)}px`;
+        selectionDiv.style.top = `${Math.min(startY, endY)}px`;
+
+        updateMask();
+      };
+
+      window.onmouseup = async () => {
+        window.onmousemove = null;
+        window.onmouseup = null;
+        const ret = await selection_done({
+          x: Math.min(startX, endX),
+          y: Math.min(startY, endY),
+          width: Math.abs(endX - startX),
+          height: Math.abs(endY - startY)
+        });
+        console.log(ret);
+        const worker = await Tesseract.createWorker('eng');
+        const txt = await worker.recognize(ret);
+        ocr_result(txt.data.text);
+
+      };
+    };
+  </script>
+</body>
+</html>
