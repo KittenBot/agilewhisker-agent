@@ -47,6 +47,7 @@ const JACDAC_PORT = 8081;
 let appShouldQuit = false;
 let tray = null;
 let mainwin: BrowserWindow = null;
+let ocrwin: BrowserWindow = null;
 let server: http.Server = null;
 let jdbus: JDBus = null;
 let hostdevice: JDServerServiceProvider = null;
@@ -268,6 +269,8 @@ const createWindow = () => {
   // tray menu
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Open', click: () => mainwin.show() },
+    { label: 'OCR', click: () => createOcrWindow() },
+    { type: 'separator' },
     { label: 'Exit', click: () => {
       appShouldQuit = true;
       app.quit() 
@@ -298,6 +301,26 @@ const createWindow = () => {
   startHttpServer();
 
 };
+
+const createOcrWindow = () => {
+  ocrwin = new BrowserWindow({
+    width: 800,
+    height: 600,
+    frame: false,
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+
+  ocrwin.loadFile('ocr.html');
+  ocrwin.setAlwaysOnTop(true, 'screen-saver');
+  ocrwin.maximize();
+
+  // ocrwin.webContents.openDevTools();
+
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
