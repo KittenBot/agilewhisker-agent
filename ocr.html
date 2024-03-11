@@ -29,7 +29,8 @@
   <div class="mask" id="mask-right"></div>
 
   <script>
-    const { ipcRenderer } = require('electron');
+    {{/*  const { ipcRenderer } = require('electron');  */}}
+    const { selection_done } = window.electronAPI;
 
     const selectionDiv = document.getElementById('selection');
     let startX, startY, endX, endY;
@@ -75,7 +76,7 @@
       window.onmouseup = () => {
         window.onmousemove = null;
         window.onmouseup = null;
-        ipcRenderer.send('selection-done', {
+        selection_done({
           x: Math.min(startX, endX),
           y: Math.min(startY, endY),
           width: Math.abs(endX - startX),

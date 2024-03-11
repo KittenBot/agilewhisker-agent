@@ -13,7 +13,8 @@ export default defineConfig({
       external: [
         'serialport',
         'sqlite3',
-        '@jitsi/robotjs'
+        '@jitsi/robotjs',
+        'sharp',
       ]
     }
   }

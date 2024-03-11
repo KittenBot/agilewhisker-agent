@@ -7,11 +7,16 @@ import {
   Menu,
   MenuItem,
   Notification,
+  desktopCapturer,
+  screen,
  } from 'electron';
 import path from 'path';
+import fs from 'fs-extra'
 import http from 'http';
 import net from 'net';
 import WebSocket from 'faye-websocket';
+import sharp from 'sharp';
+import Tesseract from 'tesseract.js';
 
 import { MQTTServer } from './jd_mqtt';
 import { PCEvent } from './jd_pcevent';
@@ -310,7 +315,8 @@ const createOcrWindow = () => {
     transparent: true,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false,
+      // contextIsolation: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
@@ -454,8 +460,32 @@ ipcMain.handle('stop-service', async (event, name) => {
       console.warn("Unknown service", name);
       break;
   }
-  
+
   refreshDevice();
   return getServices();
 })
+
+ipcMain.handle('selection-done', async (event, selection) => {
+  console.log("selection done", selection);
+  ocrwin.close();
+  const { x, y, width, height } = selection;
+  // capture screen
+  try {
+    const display = screen.getPrimaryDisplay();
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: display.size.width, height: display.size.height }});
+    const entireScreen = sources.find(source => source.name === 'Entire screen' || source.name === 'Screen 1');
+    if (!entireScreen) {
+      throw new Error('Entire screen not found');
+    }
+    const image = await sharp(entireScreen.thumbnail.toPNG())
+      .extract({ left: x, top: y, width, height })
+      .toBuffer();
+
+    fs.writeFileSync(path.join(__dirname, 'screenshot.png'), image);
+
+  } catch (e) {
+    console.error(e);
+  }
+})
+
 
