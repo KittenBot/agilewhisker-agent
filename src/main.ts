@@ -51,6 +51,7 @@ let appShouldQuit = false;
 let tray = null;
 let mainwin: BrowserWindow = null;
 let ocrwin: BrowserWindow = null;
+let dashboardwin: BrowserWindow = null;
 let server: http.Server = null;
 let jdbus: JDBus = null;
 let hostdevice: JDServerServiceProvider = null;
@@ -84,9 +85,9 @@ async function startJacdacBus() {
     transports.push(createNodeSocketTransport());
   }
   const bus = new JDBus(transports, {
-    client: true,
+    client: false,
     disableRoleManager: true,
-    // proxy: true
+    proxy: true,
     services: extraServices as any,
   })
 
@@ -110,7 +111,8 @@ async function startJacdacBus() {
 
   bus.on(FRAME_PROCESS, async (frame) => {
     for (const client_id in wsClients) {
-      if (client_id === frame._jacdac_sender || !frame._jacdac_sender){
+      // A null sender means it's from the server
+      if (client_id === frame._jacdac_sender){
         continue;
       }
       const client = wsClients[client_id];
@@ -122,7 +124,7 @@ async function startJacdacBus() {
 
   bus.on(FRAME_PROCESS_LARGE, async (frame) => {
     for (const client_id in wsClients) {
-      if (client_id === frame._jacdac_sender || !frame._jacdac_sender){
+      if (client_id === frame._jacdac_sender){
         continue;
       }
       const client = wsClients[client_id];
@@ -132,9 +134,9 @@ async function startJacdacBus() {
     }
   })
 
-  bus.autoConnect = false;
+  bus.autoConnect = true;
   bus.start()
-  await bus.connect()
+  await bus.connect(true)
   
   jdbus = bus;
 }
@@ -152,12 +154,13 @@ async function refreshDevice() {
     return;
   }
   // this will start a new device with new device id which will cause devicescript to reboud services
-  hostdevice = new JDServerServiceProvider('agilewhisk', _services, {
-    deviceDescription: "AgileWhisk",
+  hostdevice = new JDServerServiceProvider('AW Agent', _services, {
+    deviceDescription: "AW Agent",
   });
-  hostdevice.controlService.register(ControlReg.ProductIdentifier).setValues([0xAA55BB66]);
+  hostdevice.controlService.register(ControlReg.ProductIdentifier).setValues([0x3CD1D821]);
 
   jdbus.addServiceProvider(hostdevice);
+  hostdevice.bus = jdbus;
   
   new Notification({
     title: "Jacdac",
@@ -274,6 +277,7 @@ const createWindow = () => {
     { label: 'Open', click: () => mainwin.show() },
     { label: 'OCR', click: () => createOcrWindow() },
     { type: 'separator' },
+    { label: 'Debug', click: () => createDashboard() },
     { label: 'Exit', click: () => {
       appShouldQuit = true;
       app.quit() 
@@ -324,6 +328,24 @@ const createOcrWindow = () => {
 
   // ocrwin.webContents.openDevTools();
 
+}
+
+const createDashboard = () => {
+  dashboardwin = new BrowserWindow({
+    width: 800,
+    height: 600,
+    show: true,
+    webPreferences: {
+      nodeIntegration: true,
+      // contextIsolation: false,
+      
+    },
+  });
+
+  dashboardwin.loadURL('http://localhost:8081');
+  dashboardwin.maximize();
+
+  dashboardwin.webContents.openDevTools();
 }
 
 // This method will be called when Electron has finished
