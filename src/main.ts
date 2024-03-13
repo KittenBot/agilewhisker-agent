@@ -51,6 +51,7 @@ let appShouldQuit = false;
 let tray = null;
 let mainwin: BrowserWindow = null;
 let ocrwin: BrowserWindow = null;
+let dashboardwin: BrowserWindow = null;
 let server: http.Server = null;
 let jdbus: JDBus = null;
 let hostdevice: JDServerServiceProvider = null;
@@ -276,6 +277,7 @@ const createWindow = () => {
     { label: 'Open', click: () => mainwin.show() },
     { label: 'OCR', click: () => createOcrWindow() },
     { type: 'separator' },
+    { label: 'Debug', click: () => createDashboard() },
     { label: 'Exit', click: () => {
       appShouldQuit = true;
       app.quit() 
@@ -326,6 +328,24 @@ const createOcrWindow = () => {
 
   // ocrwin.webContents.openDevTools();
 
+}
+
+const createDashboard = () => {
+  dashboardwin = new BrowserWindow({
+    width: 800,
+    height: 600,
+    show: true,
+    webPreferences: {
+      nodeIntegration: true,
+      // contextIsolation: false,
+      
+    },
+  });
+
+  dashboardwin.loadURL('http://localhost:8081');
+  dashboardwin.maximize();
+
+  dashboardwin.webContents.openDevTools();
 }
 
 // This method will be called when Electron has finished
