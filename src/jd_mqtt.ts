@@ -7,19 +7,20 @@ interface Options {
     host?: string;
     topic?: string;
 }
-const SRV_PC_MONITOR = 0x113d0988;
-class MQTTServer extends JDServiceServer {
+
+class MQTTServer extends CloudAdapterServer {
     private server: net.Server;
     private topic: string;
     static broker: Aedes;
     private client: MQTTClient;
-    connected: boolean;
     constructor(options: Options = {}) {
         let connectionName = "mqtt://localhost:1883";
         if (options.host) {
             connectionName = `mqtt://${options.host}`;
         }
-        super(SRV_PC_MONITOR);
+        super({
+            connectionName
+        });
 
         this.topic = options.topic || "jacdac";
 
@@ -36,21 +37,15 @@ class MQTTServer extends JDServiceServer {
             this.client.subscribe(this.topic);
         });
         this.client.on('message', (topic, message) => {
+            // post EVT_JSON: 0x80 to jacdac
             const json = message.toString();
             this.sendEvent(0x80, jdpack("z s", [topic, json]));
         });
-        this.addCommand(0x80,(packet)=>{
-            if(!this.connected) return
-            const [topic,message] = jdunpack(packet.data, "z s");
-            this.topic = topic;
-            this.client.subscribe(topic);
-            this.client.publish(topic, message);
+        this.on(UPLOAD_JSON, ({json}) => {
+            this.client.publish(this.topic, JSON.stringify(json))
         })
-        this.addCommand(0x81,(packet)=>{
-            if(!this.connected) return
-            const [topic,message] = jdunpack(packet.data, "z s");
-            this.topic = topic;
-            this.client.publish(topic, message)
+        this.on(UPLOAD_BIN, ({data}) => {
+            this.client.publish(this.topic, data)
         })
     }
 
