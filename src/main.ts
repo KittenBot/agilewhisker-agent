@@ -425,7 +425,7 @@ ipcMain.handle('start-service', async (event, name) => {
     case 'Ambient':
       break;
     case 'Cloud':
-      const mqtt = new MQTTServer();
+      const mqtt = new MQTTServer({"host": "iot.kittenbot.cn",  "topic": "Lite_Temp"});
       hostServices[name] = mqtt;
       break;
     case 'Event':

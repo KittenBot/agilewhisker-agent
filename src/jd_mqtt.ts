@@ -41,10 +41,14 @@ class MQTTServer extends CloudAdapterServer {
             const json = message.toString();
             this.sendEvent(0x80, jdpack("z s", [topic, json]));
         });
-        this.on(UPLOAD_JSON, ({json}) => {
-            this.client.publish(this.topic, JSON.stringify(json))
+        this.on(UPLOAD_JSON, (input, input2) => {
+            console.log("upload json", input, input.json, input2)
+            const _json = JSON.parse(input.json)
+            console.log("parsed",_json)
+            this.client.publish(_json.topic, _json.data)
         })
         this.on(UPLOAD_BIN, ({data}) => {
+            console.log("upload bin", data)
             this.client.publish(this.topic, data)
         })
     }
