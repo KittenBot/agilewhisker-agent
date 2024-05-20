@@ -10,5 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // screen capture selection done
     "selection_done": (x: number, y: number, width: number, height: number) => ipcRenderer.invoke("selection-done", x, y, width, height),
     "ocr_result": (result: string) => ipcRenderer.invoke("ocr-result", result),
+    "get_settings": () => ipcRenderer.invoke("get-settings"),
+    "set_settings": (settings: any) => ipcRenderer.invoke("set-settings", settings),
 })
 
