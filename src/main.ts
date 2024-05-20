@@ -5,10 +5,11 @@ import {
   BrowserWindow,
   Tray,
   Menu,
-  MenuItem,
   Notification,
   desktopCapturer,
   screen,
+  globalShortcut,
+  Display
  } from 'electron';
 
 import path from 'path';
@@ -66,6 +67,8 @@ let hostdevice: JDServerServiceProvider = null;
 let hostServices: Record<string, any> = {};
 let wsClients: Record<string, WebSocket> = {};
 let hasHttpServer = false;
+
+let ocr_display: Display = null;
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -325,12 +328,21 @@ const createWindow = () => {
 
   startHttpServer();
 
+  // alt+d to ocr
+  globalShortcut.register('Alt+D', () => {
+    createOcrWindow();
+  });
+
 };
 
 const createOcrWindow = () => {
+  const {x, y} = screen.getCursorScreenPoint();
+  ocr_display = screen.getDisplayNearestPoint({x, y});
   ocrwin = new BrowserWindow({
     width: 800,
     height: 600,
+    x: x,
+    y: y,
     frame: false,
     transparent: true,
     webPreferences: {
@@ -508,15 +520,20 @@ ipcMain.handle('selection-done', async (event, selection) => {
   const { x, y, width, height } = selection;
   // capture screen
   try {
-    const display = screen.getPrimaryDisplay();
-    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: display.size.width, height: display.size.height }});
-    const entireScreen = sources.find(source => source.name === 'Entire screen' || source.name === 'Screen 1');
-    if (!entireScreen) {
-      throw new Error('Entire screen not found');
-    }
-    return entireScreen.thumbnail.crop({ x, y, width, height }).toDataURL();
+    // TODO: maybe let app to select screen??
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: ocr_display.size.width, height: ocr_display.size.height }
+    });
+  
+    const screenSource = sources.find(source => source.display_id.toString() === ocr_display.id.toString());
+
+    return screenSource.thumbnail.crop({ x, y, width, height }).toDataURL();
   } catch (e) {
     console.error(e);
+  } finally {
+    // close the ocr window
+    ocrwin.close();
   }
 })
 
