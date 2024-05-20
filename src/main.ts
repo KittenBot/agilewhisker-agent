@@ -304,13 +304,12 @@ const createWindow = () => {
   ]);
 
 
+  tray.on("right-click", () => {
+    tray.popUpContextMenu(contextMenu);
+  });
+
   tray.on("click", () => {
-    if (mainwin.isVisible()) {
-      // show context menu
-      tray.popUpContextMenu(contextMenu);
-    } else {
-      mainwin.isVisible() ? mainwin.hide() : mainwin.show();
-    }
+    mainwin.show();
   });
     
   mainwin.on("close", (event) => {
