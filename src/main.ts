@@ -9,15 +9,16 @@ import {
   desktopCapturer,
   screen,
   globalShortcut,
-  Display
+  Display,
+  clipboard,
  } from 'electron';
 
+ import robot from '@jitsi/robotjs';
 import path from 'path';
 import fs from 'fs-extra'
 import http from 'http';
 import net from 'net';
 import WebSocket from 'faye-websocket';
-
 import { MQTTServer } from './jd_mqtt';
 import { PCEvent } from './jd_pcevent';
 import { PCMonitor } from './jd_pcmon';
@@ -58,8 +59,11 @@ type AgentSettings = {
 
 let appShouldQuit = false;
 let tray = null;
+
 let mainwin: BrowserWindow = null;
 let ocrwin: BrowserWindow = null;
+let overlayWin: BrowserWindow = null;
+
 let dashboardwin: BrowserWindow = null;
 let server: http.Server = null;
 let jdbus: JDBus = null;
@@ -67,6 +71,7 @@ let hostdevice: JDServerServiceProvider = null;
 let hostServices: Record<string, any> = {};
 let wsClients: Record<string, WebSocket> = {};
 let hasHttpServer = false;
+let textSelInterval: NodeJS.Timeout = null;
 
 let ocr_display: Display = null;
 
@@ -360,6 +365,24 @@ const createOcrWindow = () => {
 
 }
 
+const createOverlay = () => {
+  overlayWin = new BrowserWindow({
+    width: 24,
+    height: 24,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    movable: false,
+    webPreferences: {
+      backgroundThrottling: false,
+    },
+  });
+  overlayWin.loadFile('overlay.html');
+  overlayWin.hide();
+
+}
+
 const createDashboard = () => {
   dashboardwin = new BrowserWindow({
     width: 800,
@@ -378,10 +401,27 @@ const createDashboard = () => {
   dashboardwin.webContents.openDevTools();
 }
 
+function startTextSelectListener() {
+  let lastText = "";
+  textSelInterval = setInterval(async () => {
+    const text = clipboard.readText();
+    if (text && text !== lastText) {
+      lastText = text;
+      const mouse = robot.getMousePos();
+      overlayWin.setPosition(mouse.x + 12, mouse.y + 6);
+      overlayWin.show();
+    }
+  }, 1000);
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', () => {
+  createWindow();
+  createOverlay();
+  startTextSelectListener();
+});
 
 app.on('before-quit', (event) => {
   app.exit();
@@ -531,8 +571,6 @@ ipcMain.handle('selection-done', async (event, selection) => {
     return screenSource.thumbnail.crop({ x, y, width, height }).toDataURL();
   } catch (e) {
     console.error(e);
-  } finally {
-    // close the ocr window
     ocrwin.close();
   }
 })

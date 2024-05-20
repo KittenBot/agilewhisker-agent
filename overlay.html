@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: transparent;
+    }
+
+    #icon {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+    <img id="icon" src="src/images/icon.png" onclick="handleClick()" alt="Icon">
+    <script>
+    
+    function handleClick() {
+      alert('Icon clicked!');
+    }
+  </script>
+</body>
+</html>
