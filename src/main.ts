@@ -90,7 +90,10 @@ function loadSettings(): AgentSettings{
   if (!fs.existsSync(SETTING_PATH)) {
     fs.writeJSONSync(SETTING_PATH, {
       "mqttbroker": "iot.kittenbot.cn",
-      "mqtttopic": "/jacdac123"
+      "mqtttopic": "/jacdac123",
+      "openaiUrl": "https://api.openai.com/v1/engines/davinci/completions",
+      "openaiKey": "sk-1234567890",
+      "openaiModel": "gpt-3.5-turbo",
     });
   }
   return fs.readJSONSync(SETTING_PATH);
@@ -282,6 +285,7 @@ const createWindow = () => {
       nodeIntegration: true,
       // contextIsolation: false,
       backgroundThrottling: false,
+      webSecurity: false, // bypass cors
       preload: path.join(__dirname, 'preload.js'),
     },
   });
@@ -290,7 +294,7 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainwin.loadURL('http://localhost:3000/hostapp');
+    mainwin.loadURL('http://localhost:3000/hostchat');
     mainwin.webContents.openDevTools();
   } else {
     mainwin.loadURL('https://w.kittenbot.net/hostapp');
@@ -419,8 +423,8 @@ function startTextSelectListener() {
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
   createWindow();
-  createOverlay();
-  startTextSelectListener();
+  // createOverlay();
+  // startTextSelectListener();
 });
 
 app.on('before-quit', (event) => {
@@ -584,7 +588,7 @@ ipcMain.handle('get-settings', async (event, args) => {
   return loadSettings();
 })
 
-ipcMain.handle('set-settings', async (event, settings) => {
+ipcMain.handle('save-settings', async (event, settings) => {
   try {
     await fs.writeJSON(SETTING_PATH, settings);
   } catch (e) {
