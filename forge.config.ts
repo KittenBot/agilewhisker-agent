@@ -40,10 +40,11 @@ const config: ForgeConfig = {
       name: '@electron-forge/publisher-github',
       config: {
         repository: {
-          owner: 'KittenBot',
-          name: 'agilewhisker-desktop.git'
+          owner: 'kittenbot',
+          name: 'agilewhisker-desktop'
         },
-        prerelease: true
+        prerelease: false,
+        draft: true,
       }
     }
   ]
