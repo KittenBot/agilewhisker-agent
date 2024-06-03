@@ -23,9 +23,9 @@
 <body>
     <img id="icon" src="src/images/icon.png" onclick="handleClick()" alt="Icon">
     <script>
-    
+    const {show_chat} = window.electronAPI
     function handleClick() {
-      alert('Icon clicked!');
+      show_chat('')
     }
   </script>
 </body>

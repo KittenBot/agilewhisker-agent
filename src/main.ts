@@ -63,6 +63,7 @@ let tray = null;
 let mainwin: BrowserWindow = null;
 let ocrwin: BrowserWindow = null;
 let overlayWin: BrowserWindow = null;
+let chatwin: BrowserWindow = null;
 
 let dashboardwin: BrowserWindow = null;
 let server: http.Server = null;
@@ -74,6 +75,8 @@ let hasHttpServer = false;
 let textSelInterval: NodeJS.Timeout = null;
 
 let ocr_display: Display = null;
+
+let baseUrl = "https://w.kittenbot.net";
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -294,11 +297,13 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainwin.loadURL('http://localhost:3000/hostchat');
+    baseUrl = 'http://localhost:3000'
     mainwin.webContents.openDevTools();
-  } else {
-    mainwin.loadURL('https://w.kittenbot.net/hostapp');
   }
+  
+  mainwin.loadURL(`${baseUrl}/hostapp`);
+
+
 
   // tray
   const tray = new Tray(sys_icon);
@@ -342,6 +347,11 @@ const createWindow = () => {
     createOcrWindow();
   });
 
+  // alt+f for chat window
+  globalShortcut.register('Alt+F', () => {
+    chatwin.show();
+  });
+
 };
 
 const createOcrWindow = () => {
@@ -380,6 +390,7 @@ const createOverlay = () => {
     movable: false,
     webPreferences: {
       backgroundThrottling: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
   overlayWin.loadFile('overlay.html');
@@ -405,14 +416,31 @@ const createDashboard = () => {
   dashboardwin.webContents.openDevTools();
 }
 
+const showChatWindow = () => {
+  if (!chatwin || chatwin.isDestroyed()) {
+    chatwin = new BrowserWindow({
+      width: 400,
+      height: 800,
+      show: true,
+      webPreferences: {
+        nodeIntegration: true,
+        preload: path.join(__dirname, 'preload.js'),
+      },
+    });
+  }
+
+  chatwin.loadURL(`${baseUrl}/hostchat`);
+  chatwin.show();
+}
+
 function startTextSelectListener() {
-  let lastText = "";
+  let lastText = clipboard.readText();
   textSelInterval = setInterval(async () => {
     const text = clipboard.readText();
     if (text && text !== lastText) {
       lastText = text;
       const mouse = robot.getMousePos();
-      overlayWin.setPosition(mouse.x + 12, mouse.y + 6);
+      overlayWin.setPosition(mouse.x + 6, mouse.y + 6);
       overlayWin.show();
     }
   }, 1000);
@@ -423,8 +451,8 @@ function startTextSelectListener() {
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
   createWindow();
-  // createOverlay();
-  // startTextSelectListener();
+  createOverlay();
+  startTextSelectListener();
 });
 
 app.on('before-quit', (event) => {
@@ -582,6 +610,18 @@ ipcMain.handle('selection-done', async (event, selection) => {
 ipcMain.handle('ocr-result', async (event, result) => {
   ocrwin.close();
   console.log("OCR result", result);
+  // start the chat window
+})
+
+ipcMain.handle('show-chat', async (event, text) => {
+  console.log("show chat", text);
+  if (!text) { // load text from clipboard
+    text = clipboard.readText();
+  }
+  overlayWin.hide();
+  showChatWindow();
+
+
 })
 
 ipcMain.handle('get-settings', async (event, args) => {
