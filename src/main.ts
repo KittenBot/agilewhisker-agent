@@ -416,7 +416,7 @@ const createDashboard = () => {
   dashboardwin.webContents.openDevTools();
 }
 
-const showChatWindow = () => {
+const showChatWindow = (text: string) => {
   if (!chatwin || chatwin.isDestroyed()) {
     chatwin = new BrowserWindow({
       width: 400,
@@ -427,10 +427,17 @@ const showChatWindow = () => {
         preload: path.join(__dirname, 'preload.js'),
       },
     });
+    chatwin.loadURL(`${baseUrl}/hostchat`);
+    chatwin.webContents.on('did-finish-load', () => {
+      // make a little delay to make sure the window is ready
+      setTimeout(() => {
+        chatwin.webContents.send('user-text', text);
+      }, 300);
+    });
+  } else {
+    chatwin.show();
+    chatwin.webContents.send('user-text', text);
   }
-
-  chatwin.loadURL(`${baseUrl}/hostchat`);
-  chatwin.show();
 }
 
 function startTextSelectListener() {
@@ -614,12 +621,12 @@ ipcMain.handle('ocr-result', async (event, result) => {
 })
 
 ipcMain.handle('show-chat', async (event, text) => {
-  console.log("show chat", text);
   if (!text) { // load text from clipboard
     text = clipboard.readText();
   }
+  console.log("show chat", text);
   overlayWin.hide();
-  showChatWindow();
+  showChatWindow(text);
 
 
 })
