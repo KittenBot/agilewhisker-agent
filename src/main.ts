@@ -13,12 +13,13 @@ import {
   clipboard,
  } from 'electron';
 
- import robot from '@jitsi/robotjs';
+import robot from '@jitsi/robotjs';
 import path from 'path';
 import fs from 'fs-extra'
 import http from 'http';
 import net from 'net';
 import WebSocket from 'faye-websocket';
+import crypto from 'crypto';
 import LLM from './llm';
 import { MQTTServer } from './jd_mqtt';
 import { PCEvent } from './jd_pcevent';
@@ -64,7 +65,8 @@ let tray = null;
 let mainwin: BrowserWindow = null;
 let ocrwin: BrowserWindow = null;
 let overlayWin: BrowserWindow = null;
-let chatwin: BrowserWindow = null;
+
+const chatWindow = new Map<string, BrowserWindow>();
 
 let dashboardwin: BrowserWindow = null;
 let server: http.Server = null;
@@ -349,11 +351,6 @@ const createWindow = () => {
     createOcrWindow();
   });
 
-  // alt+f for chat window
-  globalShortcut.register('Alt+F', () => {
-    chatwin.show();
-  });
-
 };
 
 const createOcrWindow = () => {
@@ -419,8 +416,12 @@ const createDashboard = () => {
   dashboardwin.webContents.openDevTools();
 }
 
-const showChatWindow = (text: string) => {
+const showChatWindow = (id: string, text: string) => {
+  let chatwin = chatWindow.get(id);
   if (!chatwin || chatwin.isDestroyed()) {
+    if (!id) {
+      id = crypto.randomBytes(8).toString('hex')
+    }
     chatwin = new BrowserWindow({
       width: 300,
       height: 400,
@@ -430,17 +431,22 @@ const showChatWindow = (text: string) => {
         preload: path.join(__dirname, 'preload.js'),
       },
     });
-    chatwin.loadURL(`${baseUrl}/hostchat`); // TODO: extract kitten chat as single page html..
+    chatwin.loadURL(`${baseUrl}/hostchat?id=${id}`); // TODO: extract kitten chat as single page html..
     chatwin.webContents.on('did-finish-load', () => {
       // make a little delay to make sure the window is ready
       setTimeout(() => {
         chatwin.webContents.send('user-text', text);
       }, 300);
     });
+    chatwin.setMenu(llm.getElectronMenu())
+    chatwin.webContents.openDevTools();
   } else {
     chatwin.show();
     chatwin.webContents.send('user-text', text);
   }
+  
+  chatWindow.set(id, chatwin);
+
 }
 
 function startTextSelectListener() {
@@ -620,7 +626,7 @@ ipcMain.handle('selection-done', async (event, selection) => {
 ipcMain.handle('ocr-result', async (event, result) => {
   ocrwin.close();
   console.log("OCR result", result);
-  showChatWindow(result)
+  showChatWindow('', result)
 })
 
 ipcMain.handle('show-chat', async (event, text) => {
@@ -629,7 +635,7 @@ ipcMain.handle('show-chat', async (event, text) => {
   }
   console.log("show chat", text);
   overlayWin.hide();
-  showChatWindow(text);
+  showChatWindow('', text);
 
 
 })
@@ -656,4 +662,11 @@ ipcMain.handle('get-llm', async (event, id) => {
 
 ipcMain.handle('save-llm', async (event, props) => {
   return llm.saveLLM(props);
+})
+
+ipcMain.handle('save-history', async (event, props) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const id = win.id.toString();
+  console.log("Saving history", id, props);
+  return llm.saveHistory(props);
 })
