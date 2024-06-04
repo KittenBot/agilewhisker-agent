@@ -19,7 +19,6 @@ import fs from 'fs-extra'
 import http from 'http';
 import net from 'net';
 import WebSocket from 'faye-websocket';
-import crypto from 'crypto';
 import LLM from './llm';
 import { MQTTServer } from './jd_mqtt';
 import { PCEvent } from './jd_pcevent';
@@ -420,11 +419,11 @@ const showChatWindow = (id: string, text: string) => {
   let chatwin = chatWindow.get(id);
   if (!chatwin || chatwin.isDestroyed()) {
     if (!id) {
-      id = crypto.randomBytes(8).toString('hex')
+      id = `robot2/0`
     }
     chatwin = new BrowserWindow({
-      width: 300,
-      height: 400,
+      width: 400,
+      height: 450,
       show: true,
       webPreferences: {
         nodeIntegration: true,
@@ -435,17 +434,23 @@ const showChatWindow = (id: string, text: string) => {
     chatwin.webContents.on('did-finish-load', () => {
       // make a little delay to make sure the window is ready
       setTimeout(() => {
+        const history = llm.loadHistory(id);
         chatwin.webContents.send('user-text', text);
+        chatwin.webContents.send('load-history', history);
       }, 300);
     });
+    chatwin.setTitle(id)
     chatwin.setMenu(llm.getElectronMenu())
     chatwin.webContents.openDevTools();
+    chatwin.on('close', () => {
+      chatWindow.delete(id);
+    })
+    chatWindow.set(id, chatwin);
   } else {
     chatwin.show();
     chatwin.webContents.send('user-text', text);
   }
   
-  chatWindow.set(id, chatwin);
 
 }
 

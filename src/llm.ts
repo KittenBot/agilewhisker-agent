@@ -1,6 +1,7 @@
 import fs from 'fs-extra'
 import JSON5 from 'json5'
 import { Menu } from 'electron';
+import crypto from 'crypto';
 
 export interface LLMMsg {
   role: string;
@@ -36,47 +37,80 @@ class LLM {
     for (const file of files) {
       if (file.endsWith('.json5')) {
         // id should be the file name
+        const _llmId = file.split('.')[0];
         const _fullPath = this.directory + '/' + file;
         const content = fs.readFileSync(_fullPath, 'utf-8');
         const llm = JSON5.parse(content);
-        this.llms[file] = {
-          id: file,
+        this.llms[_llmId] = {
+          id: _llmId,
           ...llm
         }
-        const historyFolder = this.directory + '/' + file.split('.')[0];
+        const historyFolder = this.directory + '/' + _llmId;
         if (fs.existsSync(historyFolder)) {
           const historyFiles = fs.readdirSync(historyFolder);
+          this.history[_llmId] = [];
           for (const historyFile of historyFiles) {
-            const _fullPath = historyFolder + '/' + historyFile;
-            const content = fs.readFileSync(_fullPath, 'utf-8');
-            const history = JSON5.parse(content);
-            this.history[file] = history;
+            const _historyId = historyFile.split('.')[0];
+            this.history[_llmId].push(`${_llmId}/${_historyId}`);
           }
         } else {
-          this.history[file] = [];
+          this.history[_llmId] = [];
         }
       }// TODO: add js file support
       
     }
+    console.log(this.history)
   }
 
-  saveHistory(props: {id?: string, llm: LLMConfig, history: LLMMsg[]}){
-    let {id, llm, history} = props;
-    let historyFile = this.directory + '/' + llm.id.split('.')[0] + '/' + id + '.json5';
-    if (!id || !fs.pathExistsSync(historyFile)) {
-      if (!id)
-        id = Date.now().toString();
-      historyFile = this.directory + '/' + llm.id.split('.')[0] + '/' + id + '.json5';
-    }
-    fs.ensureDirSync(llm.id.split('.')[0]);
+  saveHistory(props: {id: string, history: LLMMsg[]}) {
+    const {id, history} = props;
+    const _tmp = id.split('/');
+    const llmId = _tmp[0];
+    const llm = this.llms[llmId];
+    const historyId = _tmp[1];
+    let historyFile = this.directory + '/' + llmId + '/' + historyId + '.json5';
+
+    fs.ensureDirSync(this.directory + '/' + llmId);
     fs.writeFileSync(historyFile, JSON5.stringify(history, null, 2));
-    if (!this.history[llm.id]) {
-      this.history[llm.id] = [];
+    if (!this.history[llmId]) {
+      this.history[llmId] = [];
     }
-    if (!this.history[llm.id].includes(id)) {
-      this.history[llm.id].push(id);
+    if (!this.history[llmId].includes(id)) {
+      this.history[llmId].push(id);
     }
     return id;
+  }
+
+  loadHistory(id: string) {
+    const _tmp = id.split('/');
+    const llmId = _tmp[0];
+    const llm = this.llms[llmId];
+    if (llm){
+      let historyId = _tmp[1];
+      if (historyId === '0'){
+        historyId = crypto.randomBytes(8).toString('hex')
+      }
+      const ret: LLMHistory = {
+        id: `${llmId}/${historyId}`,
+        history: [{
+          role: 'system',
+          content: llm.system
+        }]
+      }
+      const historyFile = this.directory + '/' + llmId + '/' + historyId + '.json5';
+      console.log(historyFile, ret)
+      if (fs.existsSync(historyFile)) {
+        const content = fs.readFileSync(historyFile, 'utf-8');
+        const _json = JSON5.parse(content);
+        if (_json.history) {
+          ret.history = _json.history;
+        }
+      } else {
+        // create one if use pefered id instead of hash
+        this.saveHistory(ret);
+      }
+      return ret;
+    }
   }
 
   saveLLM(props: {id: string, llm: LLMConfig}) {
@@ -113,7 +147,7 @@ class LLM {
     const models: any[] = [];
     for (const id in this.llms) {
       const llm = this.llms[id];
-      const history = this.history[llm.id].map((hid) => {
+      const history = this.history[id].map((hid) => {
         return {
           label: hid,
           click: () => {
@@ -135,8 +169,14 @@ class LLM {
       })
     }
     return Menu.buildFromTemplate([{
-      label: 'LLM',
+      label: 'File',
       submenu: models
+    },{
+      label: 'Edit',
+      submenu: [
+        {role: 'undo'},
+        {role: 'delete'},
+      ]
     }]);
   }
 
