@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     "show_chat": (text: string) => ipcRenderer.invoke("show-chat", text),
     "get_settings": () => ipcRenderer.invoke("get-settings"),
     "save_settings": (settings: any) => ipcRenderer.invoke("save-settings", settings),
+    "list_llm": () => ipcRenderer.invoke("list-llm"),
+    "get_llm": (id: string) => ipcRenderer.invoke("get-llm", id),
     // text to chat window
     onUserText: (callback: any) => ipcRenderer.on('user-text', (event, text) => callback(text)),
 })

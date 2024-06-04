@@ -19,6 +19,7 @@ import fs from 'fs-extra'
 import http from 'http';
 import net from 'net';
 import WebSocket from 'faye-websocket';
+import LLM from './llm';
 import { MQTTServer } from './jd_mqtt';
 import { PCEvent } from './jd_pcevent';
 import { PCMonitor } from './jd_pcmon';
@@ -75,6 +76,7 @@ let hasHttpServer = false;
 let textSelInterval: NodeJS.Timeout = null;
 
 let ocr_display: Display = null;
+let llm: LLM = new LLM(path.join(app.getPath('userData'), 'llm'));
 
 let baseUrl = "https://w.kittenbot.net";
 
@@ -388,6 +390,7 @@ const createOverlay = () => {
     alwaysOnTop: true,
     resizable: false,
     movable: false,
+    skipTaskbar: true,
     webPreferences: {
       backgroundThrottling: false,
       preload: path.join(__dirname, 'preload.js'),
@@ -419,8 +422,8 @@ const createDashboard = () => {
 const showChatWindow = (text: string) => {
   if (!chatwin || chatwin.isDestroyed()) {
     chatwin = new BrowserWindow({
-      width: 400,
-      height: 800,
+      width: 300,
+      height: 400,
       show: true,
       webPreferences: {
         nodeIntegration: true,
@@ -617,12 +620,12 @@ ipcMain.handle('selection-done', async (event, selection) => {
 ipcMain.handle('ocr-result', async (event, result) => {
   ocrwin.close();
   console.log("OCR result", result);
-  // start the chat window
+  showChatWindow(result)
 })
 
 ipcMain.handle('show-chat', async (event, text) => {
   if (!text) { // load text from clipboard
-    text = clipboard.readText();
+    text = clipboard.readText().trim()
   }
   console.log("show chat", text);
   overlayWin.hide();
