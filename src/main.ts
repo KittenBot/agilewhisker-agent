@@ -282,7 +282,7 @@ const createWindow = () => {
     icon,
     width: 800,
     height: 600,
-    show:false,
+    show:true,
     fullscreenable: false,
     useContentSize: true,
     alwaysOnTop: true,
@@ -430,7 +430,7 @@ const showChatWindow = (text: string) => {
         preload: path.join(__dirname, 'preload.js'),
       },
     });
-    chatwin.loadURL(`${baseUrl}/hostchat`);
+    chatwin.loadURL(`${baseUrl}/hostchat`); // TODO: extract kitten chat as single page html..
     chatwin.webContents.on('did-finish-load', () => {
       // make a little delay to make sure the window is ready
       setTimeout(() => {
@@ -646,3 +646,14 @@ ipcMain.handle('save-settings', async (event, settings) => {
   }
 })
 
+ipcMain.handle('list-llm', async (event, args) => {
+  return Object.keys(llm.llms)
+})
+
+ipcMain.handle('get-llm', async (event, id) => {
+  return llm.getLLM(id);
+})
+
+ipcMain.handle('save-llm', async (event, props) => {
+  return llm.saveLLM(props);
+})

@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     "save_settings": (settings: any) => ipcRenderer.invoke("save-settings", settings),
     "list_llm": () => ipcRenderer.invoke("list-llm"),
     "get_llm": (id: string) => ipcRenderer.invoke("get-llm", id),
+    "save_llm": (props: any) => ipcRenderer.invoke("save-llm", props),
     // text to chat window
     onUserText: (callback: any) => ipcRenderer.on('user-text', (event, text) => callback(text)),
 })
