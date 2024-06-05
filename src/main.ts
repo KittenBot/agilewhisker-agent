@@ -439,8 +439,11 @@ const showChatWindow = (id: string, text: string) => {
         chatwin.webContents.send('load-history', history);
       }, 300);
     });
+    const switchRobot = (id: string) => {
+      showChatWindow(id, '');
+    }
     chatwin.setTitle(id)
-    chatwin.setMenu(llm.getElectronMenu())
+    chatwin.setMenu(llm.getElectronMenu(switchRobot))
     chatwin.webContents.openDevTools();
     chatwin.on('close', () => {
       chatWindow.delete(id);
@@ -448,6 +451,7 @@ const showChatWindow = (id: string, text: string) => {
     chatWindow.set(id, chatwin);
   } else {
     chatwin.show();
+    chatwin.focus();
     chatwin.webContents.send('user-text', text);
   }
   
@@ -640,7 +644,7 @@ ipcMain.handle('show-chat', async (event, text) => {
   }
   console.log("show chat", text);
   overlayWin.hide();
-  showChatWindow('', text);
+  showChatWindow('robot2/f2549051421ecd5f', text);
 
 
 })

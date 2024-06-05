@@ -18,7 +18,7 @@ export interface LLMConfig {
 
 export interface LLMHistory {
   id: string;
-  llm?: LLMConfig;
+  system: string;
   history: LLMMsg[];
 }
 
@@ -59,7 +59,7 @@ class LLM {
       }// TODO: add js file support
       
     }
-    console.log(this.history)
+    // console.log(this.history)
   }
 
   saveHistory(props: {id: string, history: LLMMsg[]}) {
@@ -69,6 +69,8 @@ class LLM {
     const llm = this.llms[llmId];
     const historyId = _tmp[1];
     let historyFile = this.directory + '/' + llmId + '/' + historyId + '.json5';
+    if (history.length < 2)
+      return;
 
     fs.ensureDirSync(this.directory + '/' + llmId);
     fs.writeFileSync(historyFile, JSON5.stringify(history, null, 2));
@@ -81,7 +83,7 @@ class LLM {
     return id;
   }
 
-  loadHistory(id: string) {
+  loadHistory(id: string): LLMHistory {
     const _tmp = id.split('/');
     const llmId = _tmp[0];
     const llm = this.llms[llmId];
@@ -92,19 +94,15 @@ class LLM {
       }
       const ret: LLMHistory = {
         id: `${llmId}/${historyId}`,
-        history: [{
-          role: 'system',
-          content: llm.system
-        }]
+        system: llm.system,
+        history: []
       }
       const historyFile = this.directory + '/' + llmId + '/' + historyId + '.json5';
-      console.log(historyFile, ret)
+      // console.log(historyFile, ret)
       if (fs.existsSync(historyFile)) {
         const content = fs.readFileSync(historyFile, 'utf-8');
         const _json = JSON5.parse(content);
-        if (_json.history) {
-          ret.history = _json.history;
-        }
+        ret.history = _json;
       } else {
         // create one if use pefered id instead of hash
         this.saveHistory(ret);
@@ -114,7 +112,7 @@ class LLM {
   }
 
   saveLLM(props: {id: string, llm: LLMConfig}) {
-    console.log("Saving LLM", props)
+    // console.log("Saving LLM", props)
     let {id, llm} = props;
     if (!id.endsWith('.json') && !id.endsWith('.json5')) {
       id = id + '.json5';
@@ -134,16 +132,11 @@ class LLM {
   }
 
   getLLM(id: string) {
-    const conf = Object.assign({}, this.llms[id]);
-    conf.context = [
-      {role: 'system', content: conf.system},
-      ...conf.context,
-    ]
-    
+    const conf = Object.assign({}, this.llms[id]);    
     return conf;
   }
 
-  getElectronMenu(){
+  getElectronMenu(callback: (id: string) => void) {
     const models: any[] = [];
     for (const id in this.llms) {
       const llm = this.llms[id];
@@ -151,18 +144,15 @@ class LLM {
         return {
           label: hid,
           click: () => {
-            console.log("Clicked", hid);
+            callback(hid);
           }
         }
       });
       models.push({
         label: llm.title,
-        click: () => {
-          console.log("Clicked", llm.title);
-        },
         submenu:[
           {label: 'New Chat', click: () => {
-
+            callback(`${id}/0`);
           }},
           ...history
         ]
