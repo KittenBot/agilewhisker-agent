@@ -1,7 +1,6 @@
 import fs from 'fs-extra'
 import JSON5 from 'json5'
 import { Menu } from 'electron';
-import crypto from 'crypto';
 
 export interface LLMMsg {
   role: string;
@@ -23,6 +22,7 @@ export interface LLMHistory {
 }
 
 class LLM {
+  defaultHistoryId: string = '';
   llms: Record<string, LLMConfig> = {};
   history: Record<string, string[]> = {};
   constructor(public directory: string, public options: any = {}) {
@@ -34,6 +34,7 @@ class LLM {
 
   listFiles() {
     const files = fs.readdirSync(this.directory);
+    let mtime = 0;
     for (const file of files) {
       if (file.endsWith('.json5')) {
         // id should be the file name
@@ -52,6 +53,12 @@ class LLM {
           for (const historyFile of historyFiles) {
             const _historyId = historyFile.split('.')[0];
             this.history[_llmId].push(`${_llmId}/${_historyId}`);
+            // find the latest history file
+            const _mtime = fs.statSync(historyFolder + '/' + historyFile).mtimeMs;
+            if (_mtime > mtime) {
+              mtime = _mtime;
+              this.defaultHistoryId = `${_llmId}/${_historyId}`;
+            }
           }
         } else {
           this.history[_llmId] = [];
@@ -59,7 +66,11 @@ class LLM {
       }// TODO: add js file support
       
     }
-    // console.log(this.history)
+    // if no default history, use the first one
+    if (!this.defaultHistoryId) {
+      this.defaultHistoryId = Object.keys(this.llms)[0] + '/0';
+    }
+    console.log("LLM loaded", this.llms, this.history, this.defaultHistoryId);
   }
 
   saveHistory(props: {id: string, history: LLMMsg[]}) {
@@ -90,7 +101,14 @@ class LLM {
     if (llm){
       let historyId = _tmp[1];
       if (historyId === '0'){
-        historyId = crypto.randomBytes(8).toString('hex')
+        let index = 1;
+        historyId = llm.title + '_' + index;
+        let historyFile = this.directory + '/' + llmId + '/' + historyId + '.json5';
+        while (fs.existsSync(historyFile)) {
+          index++;
+          historyId = llm.title + '_' + index;
+          historyFile = this.directory + '/' + llmId + '/' + historyId + '.json5';
+        }
       }
       const ret: LLMHistory = {
         id: `${llmId}/${historyId}`,
@@ -136,7 +154,7 @@ class LLM {
     return conf;
   }
 
-  getElectronMenu(callback: (id: string) => void) {
+  getElectronMenu(callback: (op: string ,id: string) => void) {
     const models: any[] = [];
     for (const id in this.llms) {
       const llm = this.llms[id];
@@ -144,7 +162,7 @@ class LLM {
         return {
           label: hid,
           click: () => {
-            callback(hid);
+            callback('open', hid);
           }
         }
       });
@@ -152,7 +170,7 @@ class LLM {
         label: llm.title,
         submenu:[
           {label: 'New Chat', click: () => {
-            callback(`${id}/0`);
+            callback('open', `${id}/0`);
           }},
           ...history
         ]
@@ -161,12 +179,6 @@ class LLM {
     return Menu.buildFromTemplate([{
       label: 'File',
       submenu: models
-    },{
-      label: 'Edit',
-      submenu: [
-        {role: 'undo'},
-        {role: 'delete'},
-      ]
     }]);
   }
 

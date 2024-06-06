@@ -416,11 +416,11 @@ const createDashboard = () => {
 }
 
 const showChatWindow = (id: string, text: string) => {
+  id = id || llm.defaultHistoryId;
   let chatwin = chatWindow.get(id);
   if (!chatwin || chatwin.isDestroyed()) {
-    if (!id) {
-      id = `robot2/0`
-    }
+    const history = llm.loadHistory(id);
+    llm.defaultHistoryId = history.id;
     chatwin = new BrowserWindow({
       width: 400,
       height: 450,
@@ -430,19 +430,18 @@ const showChatWindow = (id: string, text: string) => {
         preload: path.join(__dirname, 'preload.js'),
       },
     });
-    chatwin.loadURL(`${baseUrl}/hostchat?id=${id}`); // TODO: extract kitten chat as single page html..
+    chatwin.loadURL(`${baseUrl}/hostchat?id=${history.id}`); // TODO: extract kitten chat as single page html..
     chatwin.webContents.on('did-finish-load', () => {
       // make a little delay to make sure the window is ready
       setTimeout(() => {
-        const history = llm.loadHistory(id);
-        chatwin.webContents.send('user-text', text);
         chatwin.webContents.send('load-history', history);
+        chatwin.webContents.send('user-text', text);
+        chatwin.setTitle(history.id)
       }, 300);
     });
     const switchRobot = (id: string) => {
       showChatWindow(id, '');
     }
-    chatwin.setTitle(id)
     chatwin.setMenu(llm.getElectronMenu(switchRobot))
     chatwin.webContents.openDevTools();
     chatwin.on('close', () => {
@@ -644,7 +643,8 @@ ipcMain.handle('show-chat', async (event, text) => {
   }
   console.log("show chat", text);
   overlayWin.hide();
-  showChatWindow('robot2/f2549051421ecd5f', text);
+  // TODO: start chat window from pc-event
+  showChatWindow('', text);
 
 
 })
