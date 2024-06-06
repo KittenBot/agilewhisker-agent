@@ -350,6 +350,10 @@ const createWindow = () => {
     createOcrWindow();
   });
 
+  globalShortcut.register('Alt+F', () => {
+    showChatWindow('', '');
+  });
+
 };
 
 const createOcrWindow = () => {
@@ -421,8 +425,9 @@ const showChatWindow = (id: string, text: string) => {
   if (!chatwin || chatwin.isDestroyed()) {
     const history = llm.loadHistory(id);
     llm.defaultHistoryId = history.id;
+    // TODO: save window position in settings
     chatwin = new BrowserWindow({
-      width: 400,
+      width: 600,
       height: 450,
       show: true,
       webPreferences: {
@@ -446,6 +451,9 @@ const showChatWindow = (id: string, text: string) => {
     chatwin.webContents.openDevTools();
     chatwin.on('close', () => {
       chatWindow.delete(id);
+      if (chatWindow.size === 0) {
+        llm.listFiles();
+      }
     })
     chatWindow.set(id, chatwin);
   } else {

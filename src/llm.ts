@@ -154,7 +154,7 @@ class LLM {
     return conf;
   }
 
-  getElectronMenu(callback: (op: string ,id: string) => void) {
+  getElectronMenu(callback: (id: string) => void) {
     const models: any[] = [];
     for (const id in this.llms) {
       const llm = this.llms[id];
@@ -162,7 +162,7 @@ class LLM {
         return {
           label: hid,
           click: () => {
-            callback('open', hid);
+            callback(hid);
           }
         }
       });
@@ -170,7 +170,7 @@ class LLM {
         label: llm.title,
         submenu:[
           {label: 'New Chat', click: () => {
-            callback('open', `${id}/0`);
+            callback(`${id}/0`);
           }},
           ...history
         ]
