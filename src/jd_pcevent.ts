@@ -11,7 +11,7 @@ const CMD_MOVE_MOUSE = 0x84;
 const CMD_CLICK_MOUSE = 0x85;
 
 class PCEvent extends JDServiceServer {
-    constructor() {
+    constructor(public callback: (id: string, data: any) => void){
         super(SRV_PC_EVENT, {});
 
         this.addCommand(CMD_OPEN_URL, this.handleOpenUrl.bind(this));
@@ -45,6 +45,11 @@ class PCEvent extends JDServiceServer {
     handleRunScript(pkt: any): void {
         const [script] = jdunpack(pkt.data, "s");
         console.log("run script", script);
+        // await cd.runScript("llm://robot2/Robot2_1") 
+        if (script.startsWith("llm://")) {
+            const llm = script.substring(6)
+            this.callback(llm, '')
+        }
     }
 
     handleAccelMoveMouse(pkt: any): void {

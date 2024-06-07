@@ -296,7 +296,7 @@ const createWindow = () => {
     },
   });
 
-  mainwin.setMenu(null);
+  // mainwin.setMenu(null);
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -305,8 +305,6 @@ const createWindow = () => {
   }
   
   mainwin.loadURL(`${baseUrl}/hostapp`);
-
-
 
   // tray
   const tray = new Tray(sys_icon);
@@ -442,6 +440,7 @@ const showChatWindow = (id: string, text: string) => {
         chatwin.webContents.send('load-history', history);
         chatwin.webContents.send('user-text', text);
         chatwin.setTitle(history.id)
+        chatwin.focus()
       }, 300);
     });
     const switchRobot = (id: string) => {
@@ -563,7 +562,7 @@ ipcMain.handle('start-service', async (event, name) => {
       hostServices[name] = mqtt;
       break;
     case 'Event':
-      const event = new PCEvent();
+      const event = new PCEvent(showChatWindow);
       hostServices[name] = event;
       break;
     case 'Monitor':
