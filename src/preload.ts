@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     "start_service": (name: string) => ipcRenderer.invoke("start-service", name),
     "stop_service": (name: string) => ipcRenderer.invoke("stop-service", name),
     "get_services": () => ipcRenderer.invoke("get-services"),
+    "get_status": () => ipcRenderer.invoke("get-status"),
     // screen capture selection done
     "selection_done": (x: number, y: number, width: number, height: number) => ipcRenderer.invoke("selection-done", x, y, width, height),
     "ocr_result": (result: string) => ipcRenderer.invoke("ocr-result", result),

@@ -687,3 +687,24 @@ ipcMain.handle('save-history', async (event, props) => {
   console.log("Saving history", id, props);
   return llm.saveHistory(props);
 })
+
+ipcMain.handle('get-status', async (event, args) => {
+  if (!jdbus){
+    return {
+      transports: [],
+      devices: []
+    }
+  }
+  // get jacdac bus status of agent
+  const transports = jdbus.transports.filter(t => t.connected).map(t => t.type)
+  const devices = jdbus.devices().map(d => {
+    return {
+      shortId: d.shortId,
+      productIdentifier: d.productIdentifier,
+    }
+  })
+  return {
+    transports,
+    devices
+  }
+})
