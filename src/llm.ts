@@ -32,6 +32,16 @@ class LLM {
     this.listFiles();
   }
 
+  get list() {
+    this.listFiles();
+    return {
+      llms: Object.keys(this.llms).map((id) => {
+        return this.llms[id];
+      }),
+      history: this.history
+    }
+  }
+
   listFiles() {
     const files = fs.readdirSync(this.directory);
     let mtime = 0;

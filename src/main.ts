@@ -212,7 +212,14 @@ function startHttpServer(){
     const http_server = http.createServer((req, res) => {
       res.setHeader('Cache-Control', 'no-cache')
       res.setHeader('Content-Type', 'text/html');
-      res.end(jdproxy);
+
+      if (req.method === 'GET') {
+        if (req.url === '/llms') {
+          res.end(JSON.stringify(llm.list));
+        } else {
+          res.end(jdproxy);
+        }
+      }
     });
 
     http_server.once('error', (err) => {
@@ -473,6 +480,9 @@ function startTextSelectListener() {
       const mouse = robot.getMousePos();
       overlayWin.setPosition(mouse.x + 6, mouse.y + 6);
       overlayWin.show();
+      setTimeout(() => {
+        overlayWin.hide();
+      }, 3000);
     }
   }, 1000);
 }
