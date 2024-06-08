@@ -293,7 +293,6 @@ const createWindow = () => {
     show:true,
     fullscreenable: false,
     useContentSize: true,
-    alwaysOnTop: true,
     webPreferences: {
       nodeIntegration: true,
       // contextIsolation: false,
@@ -679,7 +678,7 @@ ipcMain.handle('save-settings', async (event, settings) => {
 })
 
 ipcMain.handle('list-llm', async (event, args) => {
-  return Object.keys(llm.llms)
+  return llm.list;
 })
 
 ipcMain.handle('get-llm', async (event, id) => {

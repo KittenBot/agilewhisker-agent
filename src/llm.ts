@@ -45,6 +45,8 @@ class LLM {
   listFiles() {
     const files = fs.readdirSync(this.directory);
     let mtime = 0;
+    this.llms = {};
+    this.history = {};
     for (const file of files) {
       if (file.endsWith('.json5')) {
         // id should be the file name
