@@ -12,13 +12,8 @@ export interface LLMConfig {
   title?: string;
   description?: string;
   system?: string; // system prompt
+  historyLength?: number;
   context: LLMMsg[];
-}
-
-export interface LLMHistory {
-  id: string;
-  system: string;
-  history: LLMMsg[];
 }
 
 class LLM {
@@ -29,6 +24,7 @@ class LLM {
     if (!fs.existsSync(directory)) {
       fs.mkdirSync(directory);
     }
+    console.log("llm directory", directory)
     this.listFiles();
   }
 
@@ -106,12 +102,14 @@ class LLM {
     return id;
   }
 
-  loadHistory(id: string): LLMHistory {
+  getLLM(id: string): LLMConfig {
     const _tmp = id.split('/');
     const llmId = _tmp[0];
     const llm = this.llms[llmId];
     if (llm){
-      let historyId = _tmp[1];
+      let historyId = '0';
+      if (_tmp.length > 1) 
+        historyId = _tmp[1];
       if (historyId === '0'){
         let index = 1;
         historyId = llm.title + '_' + index;
@@ -122,20 +120,20 @@ class LLM {
           historyFile = this.directory + '/' + llmId + '/' + historyId + '.json5';
         }
       }
-      const ret: LLMHistory = {
+      const ret: LLMConfig = {
         id: `${llmId}/${historyId}`,
         system: llm.system,
-        history: []
+        context: []
       }
       const historyFile = this.directory + '/' + llmId + '/' + historyId + '.json5';
       // console.log(historyFile, ret)
       if (fs.existsSync(historyFile)) {
         const content = fs.readFileSync(historyFile, 'utf-8');
         const _json = JSON5.parse(content);
-        ret.history = _json;
+        ret.context = _json;
       } else {
         // create one if use pefered id instead of hash
-        this.saveHistory(ret);
+        this.saveHistory({id: ret.id, history: ret.context});
       }
       return ret;
     }
@@ -158,12 +156,6 @@ class LLM {
 
     fs.writeFileSync(this.directory + '/' + id, _str);
     this.llms[id] = llm;
-    return this.getLLM(id);
-  }
-
-  getLLM(id: string) {
-    const conf = Object.assign({}, this.llms[id]);    
-    return conf;
   }
 
   getElectronMenu(callback: (id: string) => void) {

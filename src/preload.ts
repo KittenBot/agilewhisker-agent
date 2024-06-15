@@ -19,7 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     "save_llm": (props: any) => ipcRenderer.invoke("save-llm", props),
     "save_history": (props: any) => ipcRenderer.invoke("save-history", props),
     // load llm history
-    onLoadHistory: (callback: any) => ipcRenderer.on('load-history', (event, history) => callback(history)),
+    onLoadLLM: (callback: any) => ipcRenderer.on('load-llm', (event, llmconfig) => callback(llmconfig)),
     
     // text to chat window
     onUserText: (callback: any) => ipcRenderer.on('user-text', (event, text) => callback(text)),

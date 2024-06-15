@@ -427,8 +427,8 @@ const showChatWindow = (id: string, text: string) => {
   id = id || llm.defaultHistoryId;
   let chatwin = chatWindow.get(id);
   if (!chatwin || chatwin.isDestroyed()) {
-    const history = llm.loadHistory(id);
-    llm.defaultHistoryId = history.id;
+    const llmcfg = llm.getLLM(id);
+    llm.defaultHistoryId = llmcfg.id;
     // TODO: save window position in settings
     chatwin = new BrowserWindow({
       width: 600,
@@ -439,13 +439,16 @@ const showChatWindow = (id: string, text: string) => {
         preload: path.join(__dirname, 'preload.js'),
       },
     });
-    chatwin.loadURL(`${baseUrl}/hostchat?id=${history.id}`); // TODO: extract kitten chat as single page html..
+    chatwin.webContents.openDevTools();
+    chatwin.loadURL(`${baseUrl}/hostchat?id=${llmcfg.id}`); // TODO: extract kitten chat as single page html..
     chatwin.webContents.on('did-finish-load', () => {
       // make a little delay to make sure the window is ready
       setTimeout(() => {
-        chatwin.webContents.send('load-history', history);
+        console.log("sending load-llm", llmcfg)
+        chatwin.webContents.send('load-llm', llmcfg);
+        console.log("sending user-text", text)
         chatwin.webContents.send('user-text', text);
-        chatwin.setTitle(history.id)
+        chatwin.setTitle(llmcfg.id)
         chatwin.focus()
       }, 300);
     });
@@ -648,8 +651,10 @@ ipcMain.handle('selection-done', async (event, selection) => {
 })
 
 ipcMain.handle('ocr-result', async (event, result) => {
-  ocrwin.close();
   console.log("OCR result", result);
+  if (!ocrwin.isDestroyed()) {
+    ocrwin.close();
+  }
   showChatWindow('', result)
 })
 
