@@ -427,8 +427,7 @@ const showChatWindow = (id: string, text: string) => {
   id = id || llm.defaultHistoryId;
   let chatwin = chatWindow.get(id);
   if (!chatwin || chatwin.isDestroyed()) {
-    const llmcfg = llm.getLLM(id);
-    llm.defaultHistoryId = llmcfg.id;
+
     // TODO: save window position in settings
     chatwin = new BrowserWindow({
       width: 600,
@@ -440,8 +439,10 @@ const showChatWindow = (id: string, text: string) => {
       },
     });
     chatwin.webContents.openDevTools();
-    chatwin.loadURL(`${baseUrl}/hostchat?id=${llmcfg.id}`); // TODO: extract kitten chat as single page html..
+    chatwin.loadURL(`${baseUrl}/hostchat?id=${id}`); // TODO: extract kitten chat as single page html..
     chatwin.webContents.on('did-finish-load', () => {
+      const llmcfg = llm.getLLM(id);
+      llm.defaultHistoryId = llmcfg.id;
       // make a little delay to make sure the window is ready
       setTimeout(() => {
         console.log("sending load-llm", llmcfg)

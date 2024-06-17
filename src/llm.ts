@@ -123,6 +123,7 @@ class LLM {
       const ret: LLMConfig = {
         id: `${llmId}/${historyId}`,
         system: llm.system,
+        historyLength: llm.historyLength || 20,
         context: []
       }
       const historyFile = this.directory + '/' + llmId + '/' + historyId + '.json5';
@@ -142,6 +143,10 @@ class LLM {
   saveLLM(props: {id: string, llm: LLMConfig}) {
     // console.log("Saving LLM", props)
     let {id, llm} = props;
+    if (id.includes('/')) {
+      const _tmp = id.split('/');
+      id = _tmp[0];
+    }
     if (!id.endsWith('.json') && !id.endsWith('.json5')) {
       id = id + '.json5';
     }
