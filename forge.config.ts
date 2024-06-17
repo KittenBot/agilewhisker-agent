@@ -8,14 +8,14 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: 'assets/icon.png',
+    icon: 'assets/icon',
   },
   rebuildConfig: {},
   makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
   plugins: [
     new VitePlugin({
       // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
-      // If you are familiar with Vite configuration, it will look really familiar.
+      // If you are familiar with Vite configuration, it will look really familiar.0
       build: [
         {
           // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
@@ -41,7 +41,7 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: 'kittenbot',
-          name: 'agilewhisker-desktop'
+          name: 'agilewhisker-awagent'
         },
         prerelease: false,
         draft: true,

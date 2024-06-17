@@ -1,4 +1,4 @@
-# agilewhisker-desktop
+# agilewhisker-awagent
 
 ## Description
 This is an Electron application built with TypeScript. It utilizes various dependencies for different functionalities like interacting with serial ports, handling IMAP connections, and more.

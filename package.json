@@ -1,7 +1,7 @@
 {
-  "name": "agilewhisker-desktop",
-  "productName": "agilewhisker-desktop",
-  "version": "1.0.0",
+  "name": "agilewhisker-awagent",
+  "productName": "agilewhisker-awagent",
+  "version": "1.0.1",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
   "scripts": {
