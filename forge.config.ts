@@ -41,7 +41,7 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: 'kittenbot',
-          name: 'agilewhisker-awagent'
+          name: 'agilewhisker-agent'
         },
         prerelease: false,
         draft: true,
